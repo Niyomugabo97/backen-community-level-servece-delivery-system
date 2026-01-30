@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Village Leader Dashboard </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="container">
+                <h1 class="logo"><i class="fa-solid fa-house-flag"></i> Village Leader Dashboard</h1>
+                <button class="nav-toggle" aria-label="Toggle navigation">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <ul class="nav-menu">
+                    <li><a href="index.html"><i class="fa-solid fa-house"></i> Home</a></li>
+                    <li><a href="#" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main class="dashboard-container">
+        <div class="dashboard-sidebar">
+            <ul class="dashboard-menu">
+                <li><a href="#" data-section="umuganda" class="active"><i class="fa-solid fa-people-group"></i> 1. Umuganda Attendance</a></li>
+                <li><a href="#" data-section="inteko"><i class="fa-solid fa-clipboard-list"></i> 2. Inteko Minutes & Decisions</a></li>
+                <li><a href="#" data-section="notifications"><i class="fa-solid fa-bell"></i> 3. Notifications</a></li>
+                <li><a href="#" data-section="register"><i class="fa-solid fa-user-plus"></i> 4. Register New People</a></li>
+                <li><a href="#" data-section="insurance"><i class="fa-solid fa-shield-halved"></i> 5. Insurance Payment</a></li>
+                <li><a href="#" data-section="drugs"><i class="fa-solid fa-bottle-droplet"></i> 6. Report Drugs/Illegal Drinks</a></li>
+                <li><a href="#" data-section="violence"><i class="fa-solid fa-hand-fist"></i> 7. Report Sexual Violence</a></li>
+                <li><a href="#" data-section="case"><i class="fa-solid fa-scale-balanced"></i> 8. Shift Automate Ikirago (Case)</a></li>
+                <li><a href="#" data-section="homeupdates"><i class="fa-solid fa-bullhorn"></i> 9. Recent Activities & Home Updates</a></li>
+                <li><a href="#" data-section="chat"><i class="fa-solid fa-comments"></i> 10. Chat</a></li>
+            </ul>
+        </div>
+
+        <div class="dashboard-content">
+            <!-- Umuganda Attendance Section -->
+            <section id="umuganda" class="dashboard-section active">
+                <h2><i class="fa-solid fa-people-group"></i> Umuganda Attendance</h2>
+                <form id="umugandaForm" class="form-container">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="umugandaName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Age</label>
+                            <input type="number" id="umugandaAge" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sex</label>
+                            <select id="umugandaSex" required>
+                                <option value="">Select</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Sector</label>
+                            <input type="text" id="umugandaSector" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cell</label>
+                            <input type="text" id="umugandaCell" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Village</label>
+                            <input type="text" id="umugandaVillage" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Report Attendance</button>
+                </form>
+                <div class="data-table-container">
+                    <h3>Attendance Records</h3>
+                    <table id="umugandaTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Age</th>
+                                <th>Sex</th>
+                                <th>Sector</th>
+                                <th>Cell</th>
+                                <th>Village</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="umugandaTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Inteko Minutes Section -->
+            <section id="inteko" class="dashboard-section">
+                <h2><i class="fa-solid fa-clipboard-list"></i> Inteko Minutes & Decisions</h2>
+                <form id="intekoForm" class="form-container">
+                    <h3>A. MEETING INFORMATION</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Meeting Title / Inteko Name</label>
+                            <input type="text" id="meetingTitle" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Meeting Type</label>
+                            <select id="meetingType" required>
+                                <option value="">Select</option>
+                                <option value="Inteko rusange">Inteko rusange</option>
+                                <option value="Committee">Committee</option>
+                                <option value="Special Meeting">Special Meeting</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Meeting Date</label>
+                            <input type="date" id="meetingDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Start Time</label>
+                            <input type="time" id="startTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label>End Time</label>
+                            <input type="time" id="endTime" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Venue / Platform</label>
+                            <input type="text" id="venue" placeholder="Hall, Office, Zoom, Google Meet" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Meeting Number / Reference Code</label>
+                            <input type="text" id="meetingNumber">
+                        </div>
+                        <div class="form-group">
+                            <label>Chairperson</label>
+                            <input type="text" id="chairperson" required>
+                        </div>
+                    </div>
+
+                    <h3>B. ATTENDANCE MANAGEMENT</h3>
+                    <div id="attendeesContainer">
+                        <div class="attendee-item">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Full Name</label>
+                                    <input type="text" class="attendee-name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Role / Position</label>
+                                    <input type="text" class="attendee-role">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" id="addAttendeeBtn">Add Attendee</button>
+                    
+                    <div class="form-group">
+                        <label>Apologies / Absent Members</label>
+                        <textarea id="apologies" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Quorum Status</label>
+                        <select id="quorumStatus" required>
+                            <option value="">Select</option>
+                            <option value="Reached">Reached</option>
+                            <option value="Not reached">Not reached</option>
+                        </select>
+                    </div>
+
+                    <h3>C. AGENDA (INTEGO Z'INAMA)</h3>
+                    <div id="agendaContainer">
+                        <div class="agenda-item">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Agenda Number</label>
+                                    <input type="number" class="agenda-number" value="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Title</label>
+                                    <input type="text" class="agenda-title" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <textarea class="agenda-description" rows="2"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Presenter</label>
+                                <input type="text" class="agenda-presenter">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" id="addAgendaBtn">Add Agenda Item</button>
+
+                    <h3>D. DISCUSSIONS (IBYAGANIRIWEHO)</h3>
+                    <div class="form-group">
+                        <label>Discussion Summary</label>
+                        <textarea id="discussionSummary" rows="5" placeholder="Key points raised, arguments, clarifications, proposals"></textarea>
+                    </div>
+
+                    <h3>E. DECISIONS (IBYEMEZO)</h3>
+                    <div id="decisionsContainer">
+                        <div class="decision-item">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Decision ID</label>
+                                    <input type="text" class="decision-id" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Decision Type</label>
+                                    <select class="decision-type" required>
+                                        <option value="">Select</option>
+                                        <option value="Approved">Approved</option>
+                                        <option value="Rejected">Rejected</option>
+                                        <option value="Deferred">Deferred</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Decision Description</label>
+                                <textarea class="decision-description" rows="3" required></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Voting Method</label>
+                                    <select class="voting-method">
+                                        <option value="">Select</option>
+                                        <option value="Consensus">Consensus</option>
+                                        <option value="Majority vote">Majority vote</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Votes Yes</label>
+                                    <input type="number" class="votes-yes" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label>Votes No</label>
+                                    <input type="number" class="votes-no" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label>Abstain</label>
+                                    <input type="number" class="votes-abstain" min="0">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Effective Date</label>
+                                <input type="date" class="effective-date">
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" id="addDecisionBtn">Add Decision</button>
+
+                    <h3>F. ACTION ITEMS / RESOLUTIONS</h3>
+                    <div id="actionsContainer">
+                        <div class="action-item">
+                            <div class="form-group">
+                                <label>Action Description</label>
+                                <textarea class="action-description" rows="2" required></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Responsible Person / Department</label>
+                                    <input type="text" class="responsible-person" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Start Date</label>
+                                    <input type="date" class="start-date">
+                                </div>
+                                <div class="form-group">
+                                    <label>Deadline</label>
+                                    <input type="date" class="deadline">
+                                </div>
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select class="action-status">
+                                        <option value="Pending">Pending</option>
+                                        <option value="In Progress">In Progress</option>
+                                        <option value="Completed">Completed</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Progress Notes</label>
+                                <textarea class="progress-notes" rows="2"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" id="addActionBtn">Add Action Item</button>
+
+                    <h3>G. REPORT SECTION</h3>
+                    <div class="form-group">
+                        <label>Meeting Report Summary</label>
+                        <textarea id="reportSummary" rows="4"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Key Outcomes</label>
+                        <textarea id="keyOutcomes" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Challenges Identified</label>
+                        <textarea id="challenges" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Recommendations</label>
+                        <textarea id="recommendations" rows="3"></textarea>
+                    </div>
+
+                    <h3>H. DOCUMENT ATTACHMENTS</h3>
+                    <div class="form-group">
+                        <label>Attached Files (File names)</label>
+                        <input type="text" id="attachedFiles" placeholder="Comma-separated file names">
+                    </div>
+
+                    <h3>I. APPROVAL & SIGNATURES</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Prepared By (Secretary)</label>
+                            <input type="text" id="preparedBy" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Reviewed By</label>
+                            <input type="text" id="reviewedBy">
+                        </div>
+                        <div class="form-group">
+                            <label>Approved By (Chairperson)</label>
+                            <input type="text" id="approvedBy" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Approval Date</label>
+                            <input type="date" id="approvalDate" required>
+                        </div>
+                    </div>
+
+                    <h3>J. FOLLOW-UP & ARCHIVING</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Next Meeting Date</label>
+                            <input type="date" id="nextMeetingDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Minutes Status</label>
+                            <select id="minutesStatus" required>
+                                <option value="Draft">Draft</option>
+                                <option value="Reviewed">Reviewed</option>
+                                <option value="Approved">Approved</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Archive Reference Number</label>
+                            <input type="text" id="archiveRef">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Follow-Up Notes</label>
+                        <textarea id="followUpNotes" rows="3"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Save Inteko Minutes</button>
+                </form>
+                <div class="data-table-container">
+                    <h3>Inteko Minutes Records</h3>
+                    <div id="intekoRecords"></div>
+                </div>
+            </section>
+
+            <!-- Notifications Section -->
+            <section id="notifications" class="dashboard-section">
+                <h2><i class="fa-solid fa-bell"></i> Notifications</h2>
+                <div class="notifications-container">
+                    <h3>People Not Attended Inteko</h3>
+                    <div id="intekoNotifications" class="notification-list"></div>
+                    <h3>People Not Attended Umuganda</h3>
+                    <div id="umugandaNotifications" class="notification-list"></div>
+                </div>
+            </section>
+
+            <!-- Register New People Section -->
+            <section id="register" class="dashboard-section">
+                <h2><i class="fa-solid fa-user-plus"></i> Register New People</h2>
+                <form id="registerForm" class="form-container">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="regName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Sex</label>
+                            <select id="regSex" required>
+                                <option value="">Select</option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Telephone</label>
+                            <input type="tel" id="regTelephone" required>
+                        </div>
+                        <div class="form-group">
+                            <label>ID Number</label>
+                            <input type="text" id="regID" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sector</label>
+                            <input type="text" id="regSector" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cell</label>
+                            <input type="text" id="regCell" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Village</label>
+                            <input type="text" id="regVillage" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Arrival Time</label>
+                            <input type="datetime-local" id="regArrivalTime">
+                        </div>
+                        <div class="form-group">
+                            <label>Time to Return Home</label>
+                            <input type="datetime-local" id="regReturnTime">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="regStatus" required>
+                            <option value="New Member">New Member</option>
+                            <option value="Visitor">Visitor</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Register Person</button>
+                </form>
+                <div class="data-table-container">
+                    <h3>Registered People</h3>
+                    <table id="registerTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Sex</th>
+                                <th>Telephone</th>
+                                <th>ID</th>
+                                <th>Sector</th>
+                                <th>Cell</th>
+                                <th>Village</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="registerTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Insurance Payment Section -->
+            <section id="insurance" class="dashboard-section">
+                <h2><i class="fa-solid fa-shield-halved"></i> Insurance Payment Tracking</h2>
+                <form id="insuranceForm" class="form-container">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" id="insuranceName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Telephone (Optional)</label>
+                            <input type="tel" id="insuranceTelephone">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sector</label>
+                            <input type="text" id="insuranceSector" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cell</label>
+                            <input type="text" id="insuranceCell" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Village</label>
+                            <input type="text" id="insuranceVillage" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Status</label>
+                        <select id="insuranceStatus" required>
+                            <option value="Paid">Paid</option>
+                            <option value="Not Paid">Not Paid</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Record Payment Status</button>
+                </form>
+                <div class="data-table-container">
+                    <h3>Insurance Records</h3>
+                    <table id="insuranceTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Telephone</th>
+                                <th>Sector</th>
+                                <th>Cell</th>
+                                <th>Village</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="insuranceTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Report Drugs Section -->
+            <section id="drugs" class="dashboard-section">
+                <h2><i class="fa-solid fa-bottle-droplet"></i> Report Drugs and Illegal Drinks</h2>
+                <p class="section-desc">Reports are automatically visible with full details on this page, the cell dashboard and the sector dashboard.</p>
+                <form id="drugsForm" class="form-container">
+                    <div class="form-group">
+                        <label>Name(s) of Selling Illegal Drinks</label>
+                        <input type="text" id="drugsName" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sector</label>
+                            <input type="text" id="drugsSector" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cell</label>
+                            <input type="text" id="drugsCell" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Village</label>
+                            <input type="text" id="drugsVillage" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="drugsDescription" rows="3" placeholder="Describe the situation (location, details, etc.)"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Send Report</button>
+                </form>
+                <div class="data-table-container">
+                    <h3>Drug Reports</h3>
+                    <table id="drugsTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Sector</th>
+                                <th>Cell</th>
+                                <th>Village</th>
+                                <th>Description</th>
+                                <th>Reported by</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="drugsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Report Sexual Violence Section -->
+            <section id="violence" class="dashboard-section">
+                <h2><i class="fa-solid fa-hand-fist"></i> Report Sexual Violence</h2>
+                <p class="section-desc">Reports are automatically visible with full details on this page, the cell dashboard and the sector dashboard.</p>
+                <form id="violenceForm" class="form-container">
+                    <div class="form-group">
+                        <label>Name of Victim</label>
+                        <input type="text" id="violenceVictimName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Telephone</label>
+                        <input type="tel" id="violenceTelephone" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sector</label>
+                            <input type="text" id="violenceSector" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cell</label>
+                            <input type="text" id="violenceCell" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Village</label>
+                            <input type="text" id="violenceVillage" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Case Description</label>
+                        <textarea id="violenceDescription" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Send Report</button>
+                </form>
+                <div class="data-table-container">
+                    <h3>Sexual Violence Reports</h3>
+                    <table id="violenceTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Victim Name</th>
+                                <th>Telephone</th>
+                                <th>Sector</th>
+                                <th>Cell</th>
+                                <th>Village</th>
+                                <th>Description</th>
+                                <th>Reported by</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="violenceTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Shift Automate Case Section -->
+            <section id="case" class="dashboard-section">
+                <h2><i class="fa-solid fa-scale-balanced"></i> Shift Automate Ikirago (Case)</h2>
+                <form id="caseForm" class="form-container">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Leader's Name</label>
+                            <input type="text" id="caseLeaderName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Leader's Telephone</label>
+                            <input type="tel" id="caseLeaderTelephone" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sector</label>
+                            <input type="text" id="caseSector" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cell</label>
+                            <input type="text" id="caseCell" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Village</label>
+                            <input type="text" id="caseVillage" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Plaintiff / Complainant (Urega)</label>
+                            <input type="text" id="casePlaintiff" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Defendant / Accused (Urerwa)</label>
+                            <input type="text" id="caseDefendant" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Case Description</label>
+                        <textarea id="caseDescription" rows="5" required></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Expected Resolution Days</label>
+                            <input type="number" id="caseResolutionDays" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Case Date</label>
+                            <input type="date" id="caseDate" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Record Case</button>
+                </form>
+                <div class="data-table-container">
+                    <h3>Case Records</h3>
+                    <table id="caseTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Case ID</th>
+                                <th>Plaintiff</th>
+                                <th>Defendant</th>
+                                <th>Sector</th>
+                                <th>Cell</th>
+                                <th>Village</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Countdown</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="caseTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Recent Activities & Home Updates Section -->
+            <section id="homeupdates" class="dashboard-section">
+                <h2><i class="fa-solid fa-bullhorn"></i> Post to Home Page (Village)</h2>
+                <p class="section-desc">Upload recent activities, upcoming sessions, and trending topics. These will appear on the home page for all visitors.</p>
+                
+                <div class="home-updates-tabs">
+                    <button type="button" class="tab-btn active" data-tab="activity">Recent Activity</button>
+                    <button type="button" class="tab-btn" data-tab="upcoming">Upcoming Session</button>
+                    <button type="button" class="tab-btn" data-tab="trending">Trending</button>
+                </div>
+
+                <div id="tab-activity" class="home-update-form active">
+                    <h3>Post Recent Activity</h3>
+                    <form id="leaderActivityForm" class="form-container">
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="leaderActivityDesc" rows="3" required placeholder="What activity took place?"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Place / Venue</label>
+                                <input type="text" id="leaderActivityPlace" required placeholder="e.g. Village Square">
+                            </div>
+                            <div class="form-group">
+                                <label>Date</label>
+                                <input type="date" id="leaderActivityDate" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Upload image (optional)</label>
+                            <input type="file" id="leaderActivityImage" accept="image/*" capture="environment">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Post Activity</button>
+                    </form>
+                </div>
+
+                <div id="tab-upcoming" class="home-update-form">
+                    <h3>Post Upcoming Session</h3>
+                    <form id="leaderUpcomingForm" class="form-container">
+                        <div class="form-group">
+                            <label>Title</label>
+                            <input type="text" id="leaderUpcomingTitle" required placeholder="e.g. Inteko Meeting">
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="leaderUpcomingDesc" rows="3" required></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Place / Venue</label>
+                                <input type="text" id="leaderUpcomingPlace" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Date</label>
+                                <input type="date" id="leaderUpcomingDate" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Post Upcoming Session</button>
+                    </form>
+                </div>
+
+                <div id="tab-trending" class="home-update-form">
+                    <h3>Post Trending Topic</h3>
+                    <form id="leaderTrendingForm" class="form-container">
+                        <div class="form-group">
+                            <label>Description</label>
+                            <textarea id="leaderTrendingDesc" rows="3" required placeholder="What is trending in your area?"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Place</label>
+                                <input type="text" id="leaderTrendingPlace" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Date</label>
+                                <input type="date" id="leaderTrendingDate" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Post Trending</button>
+                    </form>
+                </div>
+
+                <div class="data-table-container" style="margin-top: 1.5rem;">
+                    <h3>Your recent posts (Village)</h3>
+                    <div id="leaderHomeUpdatesList"></div>
+                </div>
+            </section>
+
+            <!-- Chat Section -->
+            <section id="chat" class="dashboard-section">
+                <h2><i class="fa-solid fa-comments"></i> Chat with Citizens and Upper Levels</h2>
+                <div class="form-container">
+                    <form id="leaderChatForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="leaderChatRecipientRole">Send To</label>
+                                <select id="leaderChatRecipientRole" required>
+                                    <option value="citizen">Citizens</option>
+                                    <option value="cell">Cell Leader</option>
+                                    <option value="sector">Sector Leader</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="leaderChatMessage">Message</label>
+                            <textarea id="leaderChatMessage" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Message</button>
+                    </form>
+                </div>
+                <div class="data-table-container">
+                    <h3>Conversation</h3>
+                    <div id="leaderChatMessages" class="chat-messages"></div>
+                </div>
+                <div class="data-table-container">
+                    <h3>Citizens who contacted you</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Citizen</th>
+                                <th>Telephone</th>
+                                <th>Last Message</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderInboxBody"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="js/leader-dashboard.js"></script>
+    <script src="js/navbar.js"></script>
+</body>
+</html>
+

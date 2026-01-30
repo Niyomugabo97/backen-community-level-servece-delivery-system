@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Citizen Dashboard </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="container">
+                <h1 class="logo"><i class="fa-solid fa-user"></i> Citizen Dashboard</h1>
+                <button class="nav-toggle" aria-label="Toggle navigation">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <ul class="nav-menu">
+                    <li><a href="index.html"><i class="fa-solid fa-house"></i> Home</a></li>
+                    <li><a href="#" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main class="dashboard-container">
+        <div class="dashboard-sidebar">
+            <ul class="dashboard-menu">
+                <li><a href="#" data-section="drugs" class="active"><i class="fa-solid fa-bottle-droplet"></i> Report Drugs/Illegal Drinks</a></li>
+                <li><a href="#" data-section="violence"><i class="fa-solid fa-hand-fist"></i> Report Sexual Violence</a></li>
+                <li><a href="#" data-section="chat"><i class="fa-solid fa-comments"></i> Chat with Leaders</a></li>
+            </ul>
+        </div>
+
+        <div class="dashboard-content">
+            <!-- Report Drugs Section -->
+            <section id="drugs" class="dashboard-section active">
+                <h2><i class="fa-solid fa-bottle-droplet"></i> Report Drugs and Illegal Drinks</h2>
+                <form id="drugsForm" class="form-container">
+                    <div class="form-group">
+                        <label>Name(s) of Selling Illegal Drinks</label>
+                        <input type="text" id="drugsName" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sector</label>
+                            <input type="text" id="drugsSector" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cell</label>
+                            <input type="text" id="drugsCell" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Village</label>
+                            <input type="text" id="drugsVillage" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <textarea id="drugsDescription" rows="3" placeholder="Describe the situation (location, details, etc.)"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Send Report</button>
+                </form>
+                <div class="data-table-container">
+                    <h3>My Reports</h3>
+                    <table id="drugsTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Sector</th>
+                                <th>Cell</th>
+                                <th>Village</th>
+                                <th>Description</th>
+                                <th>Date Reported</th>
+                            </tr>
+                        </thead>
+                        <tbody id="drugsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Report Sexual Violence Section -->
+            <section id="violence" class="dashboard-section">
+                <h2>Report Sexual Violence</h2>
+                <form id="violenceForm" class="form-container">
+                    <div class="form-group">
+                        <label>Name of Victim</label>
+                        <input type="text" id="violenceVictimName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Telephone</label>
+                        <input type="tel" id="violenceTelephone" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Sector</label>
+                            <input type="text" id="violenceSector" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cell</label>
+                            <input type="text" id="violenceCell" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Village</label>
+                            <input type="text" id="violenceVillage" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Case Description</label>
+                        <textarea id="violenceDescription" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Send Report</button>
+                </form>
+                <div class="data-table-container">
+                    <h3>My Reports</h3>
+                    <table id="violenceTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Victim Name</th>
+                                <th>Telephone</th>
+                                <th>Sector</th>
+                                <th>Cell</th>
+                                <th>Village</th>
+                                <th>Description</th>
+                                <th>Date Reported</th>
+                            </tr>
+                        </thead>
+                        <tbody id="violenceTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Chat Section -->
+            <section id="chat" class="dashboard-section">
+                <h2><i class="fa-solid fa-comments"></i> Chat with Leaders</h2>
+                <div class="form-container">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="chatRecipientRole">Send To</label>
+                            <select id="chatRecipientRole">
+                                <option value="leader">Village Leader</option>
+                                <option value="cell">Cell Leader</option>
+                                <option value="sector">Sector Leader</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="chatRecipientUser">Select Leader</label>
+                            <select id="chatRecipientUser" required>
+                                <option value="">Select Leader</option>
+                            </select>
+                        </div>
+                    </div>
+                    <form id="citizenChatForm">
+                        <div class="form-group">
+                            <label for="citizenChatMessage">Message</label>
+                            <textarea id="citizenChatMessage" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Send Message</button>
+                    </form>
+                </div>
+                <div class="data-table-container">
+                    <h3>Conversation</h3>
+                    <div id="citizenChatMessages" class="chat-messages"></div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="js/citizen-dashboard.js"></script>
+    <script src="js/navbar.js"></script>
+</body>
+</html>
+

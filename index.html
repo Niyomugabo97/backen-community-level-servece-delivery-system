@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UMUTURAGE KU ISONGA SYSTEM</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="container">
+                <h1 class="logo"><i class="fa-solid fa-house-chimney-heart"></i> All Community Services Are Here</h1>
+                <button class="nav-toggle" aria-label="Toggle navigation">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <ul class="nav-menu">
+                    <li><a href="index.html" class="active"><i class="fa-solid fa-house"></i> Home</a></li>
+                    <li><a href="login.html"><i class="fa-solid fa-right-to-bracket"></i> Login</a></li>
+                    <li><a href="login.html"><i class="fa-solid fa-user-plus"></i> Sign Up</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-content">
+                <h2>Welcome to Community level Service Delivery And Reporting System</h2>
+                <p>Platform for Local Leaders and Citizens</p>
+            </div>
+        </section>
+
+        <!-- Recent Activities Section -->
+        <section class="activities-section">
+            <div class="container">
+                <h2 class="section-title"><i class="fa-solid fa-calendar-check"></i> Recent Activities</h2>
+                <div class="activities-grid" id="activitiesGrid">
+                    <!-- Activities will be loaded dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Upcoming Sessions/News Section -->
+        <section class="news-section">
+            <div class="container">
+                <h2 class="section-title"><i class="fa-solid fa-calendar-days"></i> Upcoming Sessions & News</h2>
+                <div class="news-grid" id="newsGrid">
+                    <!-- News will be loaded dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Trending Section -->
+        <section class="trending-section">
+            <div class="container">
+                <h2 class="section-title"><i class="fa-solid fa-fire-flame-curved"></i> Trending in Village/Cell/Sector</h2>
+                <div class="trending-grid" id="trendingGrid">
+                    <!-- Trending items will be loaded dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- School Dropout Statistics (Visible on Home Page) -->
+        <section class="statistics-section">
+            <div class="container">
+                <h2 class="section-title"><i class="fa-solid fa-graduation-cap"></i> School Dropout Statistics</h2>
+                <div class="statistics-grid">
+                    <div class="stat-card">
+                        <h3><i class="fa-solid fa-school"></i> Total Schools Registered</h3>
+                        <p class="stat-number" id="homeTotalSchools">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3><i class="fa-solid fa-user-graduate"></i> Total Dropout Students</h3>
+                        <p class="stat-number" id="homeTotalDropouts">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3><i class="fa-solid fa-percent"></i> Average Dropout Rate</h3>
+                        <p class="stat-number" id="homeAverageRate">0%</p>
+                    </div>
+                </div>
+
+                <!-- Per-School Statistics -->
+                <div id="homeSchoolList" class="school-list"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3><i class="fa-solid fa-people-group"></i> UMUTURAGE KU ISONGA</h3>
+                    <p>Community Management System</p>
+                </div>
+                <div class="footer-section">
+                    <h3><i class="fa-solid fa-headset"></i> Support</h3>
+                    <p><i class="fa-solid fa-envelope"></i> Email: support@umuturage.rw</p>
+                    <p><i class="fa-solid fa-phone"></i> Phone: +250 788 123 456</p>
+                </div>
+                <div class="footer-section">
+                    <h3><i class="fa-solid fa-link"></i> Quick Links</h3>
+                    <ul>
+                        <li><a href="index.html"><i class="fa-solid fa-house"></i> Home</a></li>
+                        <li><a href="login.html"><i class="fa-solid fa-right-to-bracket"></i> Login</a></li>
+                        <li><a href="login.html"><i class="fa-solid fa-user-plus"></i> Sign Up</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Community Level Services Delivery And Reporting System . All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/navbar.js"></script>
+</body>
+</html>
+
+
+
