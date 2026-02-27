@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             loadLeaderHomeUpdatesList();
         } catch (error) {
             console.error('Dashboard initialization failed:', error);
-            alert('Failed to initialize dashboard. Please refresh the page.');
+            showNotification('Failed to initialize dashboard. Please refresh the page.', 'error');
         }
     }
 
@@ -466,7 +466,7 @@ function handleIntekoSubmit(e) {
 
     e.target.reset();
     loadIntekoRecords();
-    alert('Inteko minutes saved successfully!');
+    showNotification('Inteko minutes saved successfully!', 'success');
 }
 
 function loadIntekoRecords() {
@@ -511,7 +511,7 @@ async function handleRegisterSubmit(e) {
         if (index !== -1) {
             records[index] = record;
             localStorage.setItem('registerRecords', JSON.stringify(records));
-            alert('Member updated successfully!');
+            showNotification('Member updated successfully!', 'success');
         }
         
         // Reset editing state
@@ -688,15 +688,19 @@ function initializeAllMembersAttendanceTracking() {
 // Initialize default locations
 function initializeDefaultLocations() {
     // Get existing locations from localStorage or initialize with defaults
-    let locations = JSON.parse(localStorage.getItem('systemLocations')) || {
-        sectors: ['Nyarugenge', 'Ruhuha'],
-        cells: ['Murambi', 'Kamabare'],
-        villages: ['Cyeru', 'Kanombe']
-    };
+    let locations = JSON.parse(localStorage.getItem('systemLocations'));
     
-    // Save to localStorage if not exists
-    if (!localStorage.getItem('systemLocations')) {
+    if (!locations) {
+        locations = {
+            // Default sectors visible in the dropdown before any custom ones are added
+            sectors: ['Ruhuha', 'Nyarugenge', 'Mayange'],
+            cells: ['Murambi', 'Kamabare'],
+            villages: ['Cyeru', 'Kanombe']
+        };
+        
+        // Save to localStorage
         localStorage.setItem('systemLocations', JSON.stringify(locations));
+        console.log('Initialized default locations:', locations);
     }
     
     return locations;
@@ -704,102 +708,101 @@ function initializeDefaultLocations() {
 
 // Add new sector
 function addNewSector() {
-    openLocationModal('sector');
+    showInputPrompt('Enter new sector name', 'Sector name', (sectorName) => {
+        if (!sectorName) {
+            showNotification('Sector addition cancelled', 'info');
+            return;
+        }
+        
+        const locations = JSON.parse(localStorage.getItem('systemLocations')) || { sectors: [], cells: [], villages: [] };
+        
+        // Check for duplicates
+        if (locations.sectors.includes(sectorName.trim())) {
+            showNotification('Sector already exists', 'error');
+            return;
+        }
+        
+        // Add new sector
+        locations.sectors.push(sectorName.trim());
+        localStorage.setItem('systemLocations', JSON.stringify(locations));
+        
+        // Reload sector dropdown
+        loadSectorsForLeader();
+        
+        showNotification(`Sector "${sectorName}" added successfully`, 'success');
+    });
 }
 
 // Add new cell
 function addNewCell() {
-    openLocationModal('cell');
-}
-
-// Add new village
-function addNewVillage() {
-    openLocationModal('village');
-}
-
-// Open location modal
-function openLocationModal(type) {
-    const modal = document.getElementById('locationModal');
-    const title = document.getElementById('modalTitle');
-    const input = document.getElementById('locationInput');
-    const typeSelect = document.getElementById('locationType');
-    
-    // Set modal title and type
-    const titles = {
-        sector: 'Add New Sector',
-        cell: 'Add New Cell',
-        village: 'Add New Village'
-    };
-    
-    title.textContent = titles[type];
-    typeSelect.value = type;
-    input.value = '';
-    input.placeholder = `Enter new ${type} name...`;
-    
-    // Show modal
-    modal.style.display = 'flex';
-    
-    // Focus on input
-    setTimeout(() => input.focus(), 100);
-}
-
-// Close location modal
-function closeLocationModal() {
-    const modal = document.getElementById('locationModal');
-    modal.style.display = 'none';
-    
-    // Clear form
-    document.getElementById('locationInput').value = '';
-    document.getElementById('locationType').value = 'sector';
-}
-
-// Save new location
-function saveNewLocation() {
-    const input = document.getElementById('locationInput');
-    const typeSelect = document.getElementById('locationType');
-    const locationName = input.value.trim();
-    const locationType = typeSelect.value;
-    
-    if (!locationName) {
-        showNotification('Please enter a valid location name', 'error');
-        input.focus();
-        return;
-    }
-    
-    const locations = JSON.parse(localStorage.getItem('systemLocations')) || initializeDefaultLocations();
-    
-    // Check for duplicates based on type
-    if (locations[locationType + 's'].includes(locationName)) {
-        showNotification(`${locationType.charAt(0).toUpperCase() + locationType.slice(1)} already exists`, 'error');
-        input.focus();
-        return;
-    }
-    
-    // Add new location
-    locations[locationType + 's'].push(locationName);
-    localStorage.setItem('systemLocations', JSON.stringify(locations));
-    
-    // Close modal
-    closeLocationModal();
-    
-    // Reload relevant dropdown
-    if (locationType === 'sector') {
-        loadSectorsForLeader();
-    } else if (locationType === 'cell') {
+    showInputPrompt('Enter new cell name', 'Cell name', (cellName) => {
+        if (!cellName) {
+            showNotification('Cell addition cancelled', 'info');
+            return;
+        }
+        
+        const locations = JSON.parse(localStorage.getItem('systemLocations')) || { sectors: [], cells: [], villages: [] };
+        
+        // Check for duplicates
+        if (locations.cells.includes(cellName.trim())) {
+            showNotification('Cell already exists', 'error');
+            return;
+        }
+        
+        // Add new cell
+        locations.cells.push(cellName.trim());
+        localStorage.setItem('systemLocations', JSON.stringify(locations));
+        
+        // Reload cell dropdown
         const selectedSector = document.getElementById('leaderSector').value;
         if (selectedSector) {
             updateLeaderCells();
         }
-    } else if (locationType === 'village') {
+        
+        showNotification(`Cell "${cellName}" added successfully`, 'success');
+    });
+}
+
+// Add new village
+function addNewVillage() {
+    showInputPrompt('Enter new village name', 'Village name', (villageName) => {
+        if (!villageName) {
+            showNotification('Village addition cancelled', 'info');
+            return;
+        }
+        
+        const locations = JSON.parse(localStorage.getItem('systemLocations')) || { sectors: [], cells: [], villages: [] };
+        
+        // Check for duplicates
+        if (locations.villages.includes(villageName.trim())) {
+            showNotification('Village already exists', 'error');
+            return;
+        }
+        
+        // Add new village
+        locations.villages.push(villageName.trim());
+        localStorage.setItem('systemLocations', JSON.stringify(locations));
+        
+        // Reload village dropdown
         const selectedSector = document.getElementById('leaderSector').value;
         const selectedCell = document.getElementById('leaderCell').value;
         if (selectedSector && selectedCell) {
             updateLeaderVillages();
         }
-    }
-    
-    showNotification(`${locationType.charAt(0).toUpperCase() + locationType.slice(1)} "${locationName}" added successfully`, 'success');
+        
+        showNotification(`Village "${villageName}" added successfully`, 'success');
+    });
 }
+
+// Debug function to check localStorage
+function debugSystemLocations() {
+    const locations = JSON.parse(localStorage.getItem('systemLocations'));
+    console.log('Current systemLocations in localStorage:', locations);
+    return locations;
+}
+
+// Add this to the console for testing
+// You can type: debugSystemLocations() in browser console to check current data
 
 // Update updateLeaderCells to use system locations
 function updateLeaderCells() {
@@ -843,22 +846,91 @@ let currentLeaderLocation = null;
 
 // Initialize leader location selection
 function initializeLeaderLocationSelection() {
+    // Try to restore last used location from localStorage
+    let lastLocation = null;
+    try {
+        lastLocation = JSON.parse(localStorage.getItem('leaderLastLocation'));
+    } catch (e) {
+        lastLocation = null;
+    }
+    if (lastLocation && lastLocation.sector && lastLocation.cell && lastLocation.village) {
+        currentLeaderLocation = lastLocation;
+    }
+
+    // Load sectors (this will also restore sector if currentLeaderLocation is set)
     loadSectorsForLeader();
+
+    // If we have a stored location, also restore cell and village and open attendance
+    if (currentLeaderLocation) {
+        const sectorSelect = document.getElementById('leaderSector');
+        const cellSelect = document.getElementById('leaderCell');
+        const villageSelect = document.getElementById('leaderVillage');
+
+        if (sectorSelect && currentLeaderLocation.sector) {
+            sectorSelect.value = currentLeaderLocation.sector;
+        }
+
+        // Populate cells for this sector, then select stored cell
+        updateLeaderCells();
+        if (cellSelect && currentLeaderLocation.cell) {
+            cellSelect.value = currentLeaderLocation.cell;
+            cellSelect.disabled = false;
+        }
+
+        // Populate villages for this cell, then select stored village
+        updateLeaderVillages();
+        if (villageSelect && currentLeaderLocation.village) {
+            villageSelect.value = currentLeaderLocation.village;
+            villageSelect.disabled = false;
+        }
+
+        // Update label and show attendance section directly
+        const selectedLocationEl = document.getElementById('selectedLocation');
+        if (selectedLocationEl) {
+            selectedLocationEl.textContent = `${currentLeaderLocation.village}, ${currentLeaderLocation.cell}, ${currentLeaderLocation.sector}`;
+        }
+        const attendanceSection = document.getElementById('attendanceMarkingSection');
+        if (attendanceSection) {
+            attendanceSection.style.display = 'block';
+        }
+        // Load attendance list for this location
+        loadLeaderAttendance();
+    }
 }
 
 // Load sectors for leader selection
 function loadSectorsForLeader() {
-    const locations = JSON.parse(localStorage.getItem('systemLocations')) || initializeDefaultLocations();
+    // Get system locations first
+    let locations;
+    try {
+        locations = JSON.parse(localStorage.getItem('systemLocations'));
+    } catch (e) {
+        locations = null;
+    }
+
+    // If no system locations exist OR sectors array is missing/empty, initialize with defaults
+    if (!locations || !Array.isArray(locations.sectors) || locations.sectors.length === 0) {
+        locations = initializeDefaultLocations();
+    }
+
     const memberRecords = JSON.parse(localStorage.getItem('registerRecords')) || [];
-    
-    // Combine system sectors with member sectors
+
+    // Combine system sectors with member sectors (in case some sectors only exist via members)
     const memberSectors = [...new Set(memberRecords.map(r => r.sector).filter(s => s))];
-    const allSectors = [...new Set([...locations.sectors, ...memberSectors])];
-    
+    let allSectors = [...new Set([...(locations.sectors || []), ...memberSectors])];
+
+    // As a final safety net, if still empty, re-initialize defaults
+    if (!allSectors || allSectors.length === 0) {
+        locations = initializeDefaultLocations();
+        allSectors = locations.sectors || [];
+    }
+
     const sectorSelect = document.getElementById('leaderSector');
+    if (!sectorSelect) return;
+
     sectorSelect.innerHTML = '<option value="">Select your sector</option>' +
         allSectors.map(sector => `<option value="${sector}">${sector}</option>`).join('');
-    
+
     // Restore selected value if it exists
     const currentLocation = currentLeaderLocation;
     if (currentLocation && currentLocation.sector) {
@@ -881,16 +953,29 @@ function updateLeaderCells() {
     
     if (!selectedSector) return;
     
-    // Load cells for selected sector
-    const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
-    const cells = [...new Set(records
+    // Get locations from system and member records
+    let locations;
+    try {
+        locations = JSON.parse(localStorage.getItem('systemLocations'));
+    } catch (e) {
+        locations = null;
+    }
+    if (!locations) {
+        locations = initializeDefaultLocations();
+    }
+    const memberRecords = JSON.parse(localStorage.getItem('registerRecords')) || [];
+    
+    // Combine system cells with member cells (we don't yet scope cells per sector)
+    const memberCells = [...new Set(memberRecords
         .filter(r => r.sector === selectedSector)
         .map(r => r.cell)
         .filter(c => c)
     )];
+    const systemCells = Array.isArray(locations.cells) ? locations.cells : [];
+    const allCells = [...new Set([...systemCells, ...memberCells])];
     
     cellSelect.innerHTML = '<option value="">Select your cell</option>' +
-        cells.map(cell => `<option value="${cell}">${cell}</option>`).join('');
+        allCells.map(cell => `<option value="${cell}">${cell}</option>`).join('');
 }
 
 // Update villages based on selected cell
@@ -905,16 +990,28 @@ function updateLeaderVillages() {
     
     if (!selectedSector || !selectedCell) return;
     
-    // Load villages for selected sector and cell
-    const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
-    const villages = [...new Set(records
+    // Load villages from system locations and member records
+    let locations;
+    try {
+        locations = JSON.parse(localStorage.getItem('systemLocations'));
+    } catch (e) {
+        locations = null;
+    }
+    if (!locations) {
+        locations = initializeDefaultLocations();
+    }
+    const memberRecords = JSON.parse(localStorage.getItem('registerRecords')) || [];
+    
+    const memberVillages = [...new Set(memberRecords
         .filter(r => r.sector === selectedSector && r.cell === selectedCell)
         .map(r => r.village)
         .filter(v => v)
     )];
+    const systemVillages = Array.isArray(locations.villages) ? locations.villages : [];
+    const allVillages = [...new Set([...systemVillages, ...memberVillages])];
     
     villageSelect.innerHTML = '<option value="">Select your village</option>' +
-        villages.map(village => `<option value="${village}">${village}</option>`).join('');
+        allVillages.map(village => `<option value="${village}">${village}</option>`).join('');
 }
 
 // Confirm leader location
@@ -928,12 +1025,18 @@ function confirmLeaderLocation() {
         return;
     }
     
-    // Store current leader location
+    // Store current leader location in memory
     currentLeaderLocation = {
         sector: sector,
         cell: cell,
         village: village
     };
+    // Also persist to localStorage so it is remembered next time
+    try {
+        localStorage.setItem('leaderLastLocation', JSON.stringify(currentLeaderLocation));
+    } catch (e) {
+        console.warn('Failed to persist leader location', e);
+    }
     
     // Update UI
     document.getElementById('selectedLocation').textContent = `${village}, ${cell}, ${sector}`;
@@ -1182,7 +1285,7 @@ function saveAttendance() {
     const attendanceDate = new Date().toISOString().split('T')[0];
     
     if (Object.keys(currentAttendance).length === 0) {
-        alert('Please mark attendance for at least one member');
+        showNotification('Please mark attendance for at least one member', 'error');
         return;
     }
     
@@ -1771,12 +1874,12 @@ function exportAttendanceData() {
     a.download = `attendance-analytics-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     
-    alert('Attendance data exported successfully!');
+    showNotification('Attendance data exported successfully!', 'success');
 }
 
 function refreshAnalytics() {
     updateAttendanceStatistics();
-    alert('Analytics data refreshed!');
+    showNotification('Analytics data refreshed!', 'success');
 }
 
 function viewDetailedReport() {
@@ -1850,6 +1953,113 @@ ${stats.attendanceData.map(member =>
     content.appendChild(closeBtn);
     modal.appendChild(content);
     document.body.appendChild(modal);
+}
+
+// Custom input prompt function
+function showInputPrompt(title, placeholder, callback) {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        animation: fadeIn 0.3s ease;
+    `;
+    
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        max-width: 400px;
+        width: 90%;
+        animation: slideIn 0.3s ease;
+    `;
+    
+    modal.innerHTML = `
+        <h3 style="margin: 0 0 15px 0; color: var(--primary-color);">${title}</h3>
+        <input type="text" id="customPromptInput" placeholder="${placeholder}" style="
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        ">
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button id="promptCancel" style="
+                padding: 8px 16px;
+                background: #6c757d;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            ">Cancel</button>
+            <button id="promptOk" style="
+                padding: 8px 16px;
+                background: var(--primary-color);
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            ">OK</button>
+        </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Focus input
+    setTimeout(() => {
+        document.getElementById('customPromptInput').focus();
+    }, 100);
+    
+    // Handle events
+    const input = document.getElementById('customPromptInput');
+    const okBtn = document.getElementById('promptOk');
+    const cancelBtn = document.getElementById('promptCancel');
+    
+    const closeModal = () => {
+        document.body.removeChild(overlay);
+    };
+    
+    const handleOk = () => {
+        const value = input.value.trim();
+        closeModal();
+        callback(value);
+    };
+    
+    const handleCancel = () => {
+        closeModal();
+        callback(null);
+    };
+    
+    okBtn.addEventListener('click', handleOk);
+    cancelBtn.addEventListener('click', handleCancel);
+    
+    // Enter key to submit
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleOk();
+        }
+    });
+    
+    // Escape key to cancel
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            handleCancel();
+        }
+    });
 }
 
 // Show notification function
@@ -1994,7 +2204,7 @@ function deleteMemberRecord(index) {
     const recordToDelete = records[index];
     
     if (!recordToDelete) {
-        alert('Member record not found');
+        showNotification('Member record not found', 'error');
         return;
     }
     
@@ -2010,7 +2220,7 @@ function deleteMemberRecord(index) {
         }
     }
     
-    alert('Member record deleted successfully');
+    showNotification('Member record deleted successfully', 'success');
     loadRegisterTable();
 }
 
@@ -2556,9 +2766,11 @@ function loadAllTables() {
     loadInsuranceTable();
     loadDrugsTable();
     loadViolenceTable();
-    loadInfrastructureTable();
+    // Leader-specific infrastructure table
+    loadLeaderInfrastructureTable();
     loadCaseTable();
     loadLeaderHomeUpdatesList();
+    loadVisitorReports();
     
     // Load attendance statistics
     updateAttendanceStatistics();
@@ -2982,7 +3194,7 @@ function setupFaceRecognitionControls() {
     const placeholder = document.getElementById('cameraPlaceholder');
 
     if (!startBtn || !captureBtn || !stopBtn || !video || !placeholder) {
-        console.error('Face recognition controls not found');
+        console.warn('Face recognition controls not found in this layout – skipping setup.');
         return;
     }
 
@@ -3000,7 +3212,7 @@ function setupFaceRegistrationControls() {
     const placeholder = document.getElementById('regCameraPlaceholder');
 
     if (!startBtn || !captureBtn || !stopBtn || !retakeBtn || !video || !placeholder) {
-        console.error('Face registration controls not found');
+        console.warn('Face registration controls not found in this layout – skipping setup.');
         return;
     }
 
@@ -3356,9 +3568,195 @@ function exportFaceDatabase() {
         link.download = `face_database_${new Date().toISOString().split('T')[0]}.json`;
         link.click();
         
-        alert('Face database exported successfully!');
+        showNotification('Face database exported successfully!', 'success');
     } catch (error) {
         console.error('Export failed:', error);
-        alert('Failed to export face database. Check console for details.');
+        showNotification('Failed to export face database. Check console for details.', 'error');
     }
 }
+
+// Visitor Reports Functions
+function loadVisitorReports() {
+    const visitorReports = JSON.parse(localStorage.getItem('visitorReports')) || [];
+    const tableBody = document.getElementById('visitorReportsTableBody');
+    const noDataMessage = document.getElementById('noVisitorReports');
+    
+    // Update summary cards
+    updateVisitorSummaryCards(visitorReports);
+    
+    // Get filter values
+    const searchTerm = document.getElementById('searchVisitors')?.value.toLowerCase() || '';
+    const statusFilter = document.getElementById('filterVisitorStatus')?.value || '';
+    const dateFilter = document.getElementById('filterVisitorDate')?.value || '';
+    
+    // Filter reports
+    let filteredReports = visitorReports.filter(report => {
+        // Search filter
+        const matchesSearch = !searchTerm || 
+            report.visitorNames?.toLowerCase().includes(searchTerm) ||
+            report.reportedBy?.toLowerCase().includes(searchTerm) ||
+            report.reason?.toLowerCase().includes(searchTerm) ||
+            [report.fromProvince, report.fromDistrict, report.fromSector, report.fromCell, report.fromVillage].join(' ').toLowerCase().includes(searchTerm);
+        
+        // Status filter
+        const matchesStatus = !statusFilter || report.status === statusFilter;
+        
+        // Date filter
+        let matchesDate = true;
+        if (dateFilter) {
+            const reportDate = new Date(report.dateReported);
+            const today = new Date();
+            
+            switch (dateFilter) {
+                case 'today':
+                    matchesDate = reportDate.toDateString() === today.toDateString();
+                    break;
+                case 'week':
+                    const weekAgo = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
+                    matchesDate = reportDate >= weekAgo;
+                    break;
+                case 'month':
+                    const monthAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+                    matchesDate = reportDate >= monthAgo;
+                    break;
+            }
+        }
+        
+        return matchesSearch && matchesStatus && matchesDate;
+    });
+    
+    // Sort by date (newest first)
+    filteredReports.sort((a, b) => new Date(b.dateReported) - new Date(a.dateReported));
+    
+    if (filteredReports.length === 0) {
+        tableBody.innerHTML = '';
+        noDataMessage.style.display = 'block';
+        return;
+    }
+    
+    noDataMessage.style.display = 'none';
+    
+    tableBody.innerHTML = filteredReports.map((report, index) => `
+        <tr>
+            <td>${formatDate(report.dateReported)}</td>
+            <td>${report.visitorNames || 'N/A'}</td>
+            <td>${report.reason || 'N/A'}</td>
+            <td>${report.reportedBy || 'N/A'}</td>
+            <td>${[report.fromProvince, report.fromDistrict, report.fromSector, report.fromCell, report.fromVillage].filter(Boolean).join(', ') || 'N/A'}</td>
+            <td>${report.returnDate ? formatDate(report.returnDate) : 'N/A'}</td>
+            <td>${[report.yourSector, report.yourCell, report.yourVillage].filter(Boolean).join(', ') || 'N/A'}</td>
+            <td><span class="status-badge status-${report.status || 'pending'}">${report.status || 'pending'}</span></td>
+            <td>
+                <div class="action-buttons">
+                    <button class="btn-action btn-view" onclick="viewVisitorDetails('${report.id}')" title="View Details">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                    ${report.status === 'pending' ? `
+                        <button class="btn-action btn-approve" onclick="updateVisitorStatus('${report.id}', 'approved')" title="Approve">
+                            <i class="fa-solid fa-check"></i>
+                        </button>
+                        <button class="btn-action btn-reject" onclick="updateVisitorStatus('${report.id}', 'rejected')" title="Reject">
+                            <i class="fa-solid fa-times"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function updateVisitorSummaryCards(visitorReports) {
+    const today = new Date().toDateString();
+    const todayReports = visitorReports.filter(report => 
+        new Date(report.dateReported).toDateString() === today
+    );
+    const pendingReports = visitorReports.filter(report => 
+        report.status === 'pending'
+    );
+    
+    document.getElementById('totalVisitorsCount').textContent = visitorReports.length;
+    document.getElementById('todayVisitorsCount').textContent = todayReports.length;
+    document.getElementById('pendingVisitorsCount').textContent = pendingReports.length;
+}
+
+function viewVisitorDetails(visitorId) {
+    const visitorReports = JSON.parse(localStorage.getItem('visitorReports')) || [];
+    const report = visitorReports.find(r => r.id === visitorId);
+    
+    if (!report) {
+        showNotification('Visitor report not found', 'error');
+        return;
+    }
+    
+    const details = `
+VISITOR REPORT DETAILS
+=====================
+
+Date Reported: ${formatDate(report.dateReported)}
+Return Date: ${report.returnDate ? formatDate(report.returnDate) : 'Not specified'}
+
+Visitor Information:
+- Names: ${report.visitorNames || 'N/A'}
+- Number of Visitors: ${report.visitorCount || 'N/A'}
+- ID Numbers: ${report.visitorIDs || 'N/A'}
+- Telephone: ${report.visitorTelephone || 'N/A'}
+
+Visitor Origin:
+- Province: ${report.fromProvince || 'N/A'}
+- District: ${report.fromDistrict || 'N/A'}
+- Sector: ${report.fromSector || 'N/A'}
+- Cell: ${report.fromCell || 'N/A'}
+- Village: ${report.fromVillage || 'N/A'}
+
+Host Information:
+- Reported By: ${report.reportedBy || 'N/A'}
+- Reporter Email: ${report.reportedByEmail || 'N/A'}
+- Host Location: ${[report.yourSector, report.yourCell, report.yourVillage].filter(Boolean).join(', ') || 'N/A'}
+
+Visit Details:
+- Reason: ${report.reason || 'N/A'}
+- Status: ${report.status || 'pending'}
+- Host Telephone: ${report.yourTelephone || 'N/A'}
+    `;
+    
+    showNotification('Visitor details displayed in console', 'info');
+    console.log(details);
+}
+
+function updateVisitorStatus(visitorId, newStatus) {
+    const visitorReports = JSON.parse(localStorage.getItem('visitorReports')) || [];
+    const reportIndex = visitorReports.findIndex(r => r.id === visitorId);
+    
+    if (reportIndex === -1) {
+        showNotification('Visitor report not found', 'error');
+        return;
+    }
+    
+    visitorReports[reportIndex].status = newStatus;
+    visitorReports[reportIndex].reviewedDate = new Date().toISOString();
+    visitorReports[reportIndex].reviewedBy = 'Village Leader';
+    
+    localStorage.setItem('visitorReports', JSON.stringify(visitorReports));
+    
+    showNotification(`Visitor report ${newStatus} successfully`, 'success');
+    loadVisitorReports();
+}
+
+// Add event listeners for visitor filters
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('searchVisitors');
+    const statusFilter = document.getElementById('filterVisitorStatus');
+    const dateFilter = document.getElementById('filterVisitorDate');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', loadVisitorReports);
+    }
+    
+    if (statusFilter) {
+        statusFilter.addEventListener('change', loadVisitorReports);
+    }
+    
+    if (dateFilter) {
+        dateFilter.addEventListener('change', loadVisitorReports);
+    }
+});
