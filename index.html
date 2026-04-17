@@ -19,6 +19,9 @@
                 </button>
                 <ul class="nav-menu">
                     <li><a href="index.html" class="active"><i class="fa-solid fa-house"></i> Home</a></li>
+                    <li><a href="view-analytics.html"><i class="fa-solid fa-chart-line"></i> View Analytics</a></li>
+                    <li><a href="#about"><i class="fa-solid fa-info-circle"></i> About Us</a></li>
+                    <li><a href="#contact"><i class="fa-solid fa-envelope"></i> Contact Us</a></li>
                     <li><a href="login.html"><i class="fa-solid fa-right-to-bracket"></i> Login</a></li>
                     <li><a href="login.html"><i class="fa-solid fa-user-plus"></i> Sign Up</a></li>
                 </ul>
@@ -75,27 +78,94 @@
             </div>
         </section>
 
-        <!-- School Dropout Statistics (Visible on Home Page) -->
-        <section class="statistics-section">
+        <!-- About Us Section -->
+        <section id="about" class="about-section">
             <div class="container">
-                <h2 class="section-title"><i class="fa-solid fa-graduation-cap"></i> School Dropout Statistics</h2>
-                <div class="statistics-grid">
-                    <div class="stat-card">
-                        <h3><i class="fa-solid fa-school"></i> Total Schools Registered</h3>
-                        <p class="stat-number" id="homeTotalSchools">0</p>
+                <h2 class="section-title"><i class="fa-solid fa-info-circle"></i> About Us</h2>
+                <div class="about-content">
+                    <div class="about-grid">
+                        <div class="about-item">
+                            <div class="about-icon">
+                                <i class="fa-solid fa-people-group"></i>
+                            </div>
+                            <h3>Community Focused</h3>
+                            <p>We are dedicated to serving local communities through efficient service delivery and reporting systems.</p>
+                        </div>
+                        <div class="about-item">
+                            <div class="about-icon">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                            <h3>Secure Platform</h3>
+                            <p>Our platform ensures the security and privacy of all community data and communications.</p>
+                        </div>
+                        <div class="about-item">
+                            <div class="about-icon">
+                                <i class="fa-solid fa-chart-line"></i>
+                            </div>
+                            <h3>Data Driven</h3>
+                            <p>We use analytics and data to improve community services and decision-making processes.</p>
+                        </div>
                     </div>
-                    <div class="stat-card">
-                        <h3><i class="fa-solid fa-user-graduate"></i> Total Dropout Students</h3>
-                        <p class="stat-number" id="homeTotalDropouts">0</p>
-                    </div>
-                    <div class="stat-card">
-                        <h3><i class="fa-solid fa-percent"></i> Average Dropout Rate</h3>
-                        <p class="stat-number" id="homeAverageRate">0%</p>
+                    <div class="about-mission">
+                        <h3>Our Mission</h3>
+                        <p>To provide a comprehensive platform that connects local leaders with citizens, enabling efficient service delivery, transparent reporting, and community engagement through modern technology solutions.</p>
                     </div>
                 </div>
+            </div>
+        </section>
 
-                <!-- Per-School Statistics -->
-                <div id="homeSchoolList" class="school-list"></div>
+        <!-- Contact Us Section -->
+        <section id="contact" class="contact-section">
+            <div class="container">
+                <h2 class="section-title"><i class="fa-solid fa-envelope"></i> Contact Us</h2>
+                <div class="contact-content">
+                    <div class="contact-grid">
+                        <div class="contact-info">
+                            <h3>Get in Touch</h3>
+                            <div class="contact-item">
+                                <i class="fa-solid fa-envelope"></i>
+                                <div>
+                                    <strong>Email</strong>
+                                    <p>support@umuturage.rw</p>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fa-solid fa-phone"></i>
+                                <div>
+                                    <strong>Phone</strong>
+                                    <p>+250 788 123 456</p>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <i class="fa-solid fa-location-dot"></i>
+                                <div>
+                                    <strong>Address</strong>
+                                    <p>Kigali, Rwanda</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="contact-form">
+                            <h3>Send us a Message</h3>
+                            <form class="form-container">
+                                <div class="form-group">
+                                    <label for="contactName">Name</label>
+                                    <input type="text" id="contactName" name="name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="contactEmail">Email</label>
+                                    <input type="email" id="contactEmail" name="email" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="contactMessage">Message</label>
+                                    <textarea id="contactMessage" name="message" rows="5" required></textarea>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fa-solid fa-paper-plane"></i> Send Message
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
@@ -130,8 +200,8 @@
 
     <script src="js/main.js"></script>
     <script src="js/navbar.js"></script>
+    <script src="config.js"></script>
+    <script src="js/api.js"></script>
+
 </body>
 </html>
-
-
-

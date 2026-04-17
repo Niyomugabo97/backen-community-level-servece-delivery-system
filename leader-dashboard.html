@@ -28,18 +28,18 @@
     <main class="dashboard-container">
         <div class="dashboard-sidebar bottom">
             <ul class="dashboard-menu">
-                <li><a href="#" data-section="register" class="active"><i class="fa-solid fa-user-plus"></i> 1. Register Members</a></li>
-                <li><a href="#" data-section="umuganda"><i class="fa-solid fa-people-group"></i> 2. Umuganda Attendance</a></li>
-                <li><a href="#" data-section="analytics"><i class="fa-solid fa-chart-bar"></i> 3. Attendance Analytics</a></li>
-                <li><a href="#" data-section="inteko"><i class="fa-solid fa-clipboard-list"></i> 4. Inteko Minutes & Decisions</a></li>
-                <li><a href="#" data-section="insurance"><i class="fa-solid fa-shield-halved"></i> 5. Insurance Payment</a></li>
-                <li><a href="#" data-section="drugs"><i class="fa-solid fa-bottle-droplet"></i> 6. Report Drugs/Illegal Drinks</a></li>
-                <li><a href="#" data-section="violence"><i class="fa-solid fa-hand-fist"></i> 7. Report Sexual Violence</a></li>
-                <li><a href="#" data-section="infrastructure"><i class="fa-solid fa-road"></i> 8. Damaged Infrastructure Report</a></li>
-                <li><a href="#" data-section="case"><i class="fa-solid fa-scale-balanced"></i> 9. Shift Automate Ikirago (Case)</a></li>
-                <li><a href="#" data-section="homeupdates"><i class="fa-solid fa-bullhorn"></i> 10. Recent Activities & Home Updates</a></li>
-                <li><a href="#" data-section="chat"><i class="fa-solid fa-comments"></i> 11. Chat</a></li>
-                <li><a href="#" data-section="visitors"><i class="fa-solid fa-user-group"></i> 12. Visitor Reports</a></li>
+                <li><a href="#register" data-section="register" class="active"><i class="fa-solid fa-user-plus"></i> 1. Register Members</a></li>
+                <li><a href="#umuganda" data-section="umuganda"><i class="fa-solid fa-people-group"></i> 2. Umuganda Attendance</a></li>
+                <li><a href="#analytics" data-section="analytics"><i class="fa-solid fa-chart-bar"></i> 3. Attendance Analytics</a></li>
+                <li><a href="#inteko" data-section="inteko"><i class="fa-solid fa-clipboard-list"></i> 4. Inteko Minutes & Decisions</a></li>
+                <li><a href="#insurance" data-section="insurance"><i class="fa-solid fa-shield-halved"></i> 5. Insurance Payment</a></li>
+                <li><a href="#drugs" data-section="drugs"><i class="fa-solid fa-bottle-droplet"></i> 6. Report Drugs/Illegal Drinks</a></li>
+                <li><a href="#violence" data-section="violence"><i class="fa-solid fa-hand-fist"></i> 7. Report Sexual Violence</a></li>
+                <li><a href="#infrastructure" data-section="infrastructure"><i class="fa-solid fa-road"></i> 8. Damaged Infrastructure Report</a></li>
+                <li><a href="#case" data-section="case"><i class="fa-solid fa-scale-balanced"></i> 9. Shift Automate Ikirago (Case)</a></li>
+                <li><a href="#homeupdates" data-section="homeupdates"><i class="fa-solid fa-bullhorn"></i> 10. Recent Activities & Home Updates</a></li>
+                <li><a href="#chat" data-section="chat"><i class="fa-solid fa-comments"></i> 11. Chat</a></li>
+                <li><a href="#visitors" data-section="visitors"><i class="fa-solid fa-user-group"></i> 12. Visitor Reports</a></li>
             </ul>
         </div>
 
@@ -114,7 +114,6 @@
                                 <th>Village</th>
                                 <th>Age</th>
                                 <th>Status</th>
-                                <th>Attendance Rate</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -183,18 +182,31 @@
                         <div class="attendance-header">
                             <h3>Mark Attendance for <span id="selectedLocation"></span></h3>
                             <div class="attendance-date">
+                                <label>Month:</label>
+                                <select id="attendanceMonth" onchange="updateAttendanceDate()">
+                                    <option value="">-- Select month --</option>
+                                    <option value="0">January</option>
+                                    <option value="1">February</option>
+                                    <option value="2">March</option>
+                                    <option value="3">April</option>
+                                    <option value="4">May</option>
+                                    <option value="5">June</option>
+                                    <option value="6">July</option>
+                                    <option value="7">August</option>
+                                    <option value="8">September</option>
+                                    <option value="9">October</option>
+                                    <option value="10">November</option>
+                                    <option value="11">December</option>
+                                </select>
                                 <label>Date:</label>
                                 <input type="date" id="attendanceDate" value="">
                             </div>
-                            <div class="attendance-actions">
+                            <div class="action-buttons">
                                 <button class="btn btn-success" onclick="markAllPresent()">
                                     <i class="fa-solid fa-check-double"></i> Mark All Present
                                 </button>
                                 <button class="btn btn-danger" onclick="markAllAbsent()">
                                     <i class="fa-solid fa-times"></i> Mark All Absent
-                                </button>
-                                <button class="btn btn-primary" onclick="saveAttendance()">
-                                    <i class="fa-solid fa-save"></i> Save Attendance
                                 </button>
                                 <button class="btn btn-secondary" onclick="changeLocation()">
                                     <i class="fa-solid fa-arrow-left"></i> Change Location
@@ -203,16 +215,6 @@
                         </div>
                         
                         <div class="members-attendance-list">
-                            <div class="search-filter">
-                                <input type="text" id="searchMemberAttendance" placeholder="Search members..." onkeyup="filterAttendanceList()">
-                                <select id="filterSector" onchange="filterAttendanceList()" style="display: none;">
-                                    <option value="">All Sectors</option>
-                                </select>
-                                <select id="filterVillage" onchange="filterAttendanceList()" style="display: none;">
-                                    <option value="">All Villages</option>
-                                </select>
-                            </div>
-                            
                             <div class="attendance-summary">
                                 <div class="summary-item">
                                     <span class="summary-label">Total Members:</span>
@@ -237,36 +239,64 @@
                                         <th>Village</th>
                                         <th>Telephone</th>
                                         <th>Attendance Status</th>
-                                        <th>Notes</th>
+                                        <th>Performance</th>
                                     </tr>
                                 </thead>
                                 <tbody id="attendanceTableBody">
                                     <!-- Members will be loaded here -->
                                 </tbody>
                             </table>
+                            
+                            <div class="save-attendance-section">
+                                <button class="btn btn-primary btn-large" onclick="saveAttendance()">
+                                    <i class="fa-solid fa-save"></i> Save Attendance
+                                </button>
+                            </div>
+
+                            <div id="umugandaSavedRecordsWrap" class="data-table-container" style="margin-top: 1.5rem; display: none;">
+                                <div class="table-header">
+                                    <h3>Saved Attendance Records</h3>
+                                    <div class="table-actions">
+                                        <input
+                                            type="text"
+                                            id="umugandaSearchName"
+                                            placeholder="Search by name..."
+                                            class="search-input"
+                                            onkeyup="filterUmugandaSavedRecords()"
+                                        />
+                                        <select id="umugandaFilterSector" class="filter-select" onchange="filterUmugandaSavedRecords()">
+                                            <option value="">All Sectors</option>
+                                        </select>
+                                        <select id="umugandaFilterCell" class="filter-select" onchange="filterUmugandaSavedRecords()">
+                                            <option value="">All Cells</option>
+                                        </select>
+                                        <select id="umugandaFilterVillage" class="filter-select" onchange="filterUmugandaSavedRecords()">
+                                            <option value="">All Villages</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <table id="umugandaSavedRecordsTable" class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Sex</th>
+                                            <th>Age</th>
+                                            <th>Telephone</th>
+                                            <th>Sector</th>
+                                            <th>Cell</th>
+                                            <th>Village</th>
+                                            <th>Attendance Status</th>
+                                            <th>Performance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="umugandaTableBody">
+                                        <!-- Saved records will be rendered here -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="data-table-container">
-                    <h3>Attendance Records</h3>
-                    <table id="umugandaTable" class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Age</th>
-                                <th>Sex</th>
-                                <th>Sector</th>
-                                <th>Cell</th>
-                                <th>Village</th>
-                                <th>Date</th>
-                                <th>Method</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="umugandaTableBody">
-                        </tbody>
-                    </table>
                 </div>
             </section>
 
@@ -293,7 +323,7 @@
                         <div class="stat-card">
                             <h4>Present Today</h4>
                             <div class="stat-value" id="presentToday">0</div>
-                            <div class="stat-detail">Face recognition</div>
+                            <div class="stat-detail">Attended Today</div>
                         </div>
                         <div class="stat-card">
                             <h4>Absent Today</h4>
@@ -345,20 +375,7 @@
                         </div>
                     </div>
                     
-                    <!-- Village Statistics -->
-                    <div class="village-statistics">
-                        <h4>Village Attendance Statistics</h4>
-                        <div class="village-grid">
-                            <div class="village-chart-container">
-                                <canvas id="villageChart" width="400" height="300"></canvas>
-                            </div>
-                            <div class="village-details" id="villageDetails">
-                                <!-- Village statistics will be populated here -->
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Sector Statistics -->
+                    <!-- Sector Statistics with Village Breakdown -->
                     <div class="sector-statistics">
                         <h4>Sector Attendance Statistics</h4>
                         <div class="sector-grid">
@@ -369,21 +386,16 @@
                                 <!-- Sector statistics will be populated here -->
                             </div>
                         </div>
-                    </div>
-                    
-                    <!-- Analytics Actions -->
-                    <div class="analytics-actions">
-                        <h4>Analytics Actions</h4>
-                        <div class="action-buttons">
-                            <button class="btn btn-primary" onclick="exportAttendanceData()">
-                                <i class="fa-solid fa-download"></i> Export Data
-                            </button>
-                            <button class="btn btn-secondary" onclick="refreshAnalytics()">
-                                <i class="fa-solid fa-sync"></i> Refresh
-                            </button>
-                            <button class="btn btn-info" onclick="viewDetailedReport()">
-                                <i class="fa-solid fa-chart-line"></i> Detailed Report
-                            </button>
+                        
+                        <!-- Village Breakdown by Sector -->
+                        <div class="village-breakdown-section">
+                            <h5>Village Attendance by Sector</h5>
+                            <div class="village-chart-container">
+                                <canvas id="villageChart" width="400" height="300"></canvas>
+                            </div>
+                            <div id="villageBreakdownContainer">
+                                <!-- Village breakdown by sector will be populated here -->
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -946,6 +958,8 @@
                 </div>
             </section>
 
+            <!-- Attendance Analytics Section -->
+
             <!-- Recent Activities & Home Updates Section -->
             <section id="homeupdates" class="dashboard-section">
                 <h2><i class="fa-solid fa-bullhorn"></i> Post to Home Page (Village)</h2>
@@ -1003,6 +1017,10 @@
                                 <input type="date" id="leaderUpcomingDate" required>
                             </div>
                         </div>
+                        <div class="form-group">
+                            <label>Upload image (optional)</label>
+                            <input type="file" id="leaderUpcomingImage" accept="image/*" capture="environment">
+                        </div>
                         <button type="submit" class="btn btn-primary">Post Upcoming Session</button>
                     </form>
                 </div>
@@ -1023,6 +1041,10 @@
                                 <label>Date</label>
                                 <input type="date" id="leaderTrendingDate" required>
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Upload image (optional)</label>
+                            <input type="file" id="leaderTrendingImage" accept="image/*" capture="environment">
                         </div>
                         <button type="submit" class="btn btn-primary">Post Trending</button>
                     </form>
@@ -1161,7 +1183,9 @@
         </div>
     </main>
 
-    <script src="js/face-recognition.js"></script>
+    <script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/face-recognition.js"></script>
     <script src="js/leader-dashboard.js"></script>
     <script src="js/navbar.js"></script>
 </body>

@@ -1,7 +1,25 @@
 // Main JavaScript for Home Page
 
-// Sample data for activities, news, and trending
-const sampleActivities = [
+// Load configuration
+document.addEventListener('DOMContentLoaded', () => {
+    // Load configuration
+    const script = document.createElement('script');
+    script.src = 'config.js';
+    script.onload = () => {
+        initializeHome();
+    };
+    document.head.appendChild(script);
+});
+
+function initializeHome() {
+    // Use CONFIG from config.js
+    console.log('CONFIG loaded:', CONFIG);
+    
+    // Initialize API service
+    const api = new ApiService();
+    
+    // Sample data for activities, news, and trending
+    const sampleActivities = [
     {
         id: 1,
         image: 'https://via.placeholder.com/400x200?text=Community+Activity',
@@ -204,9 +222,33 @@ document.addEventListener('DOMContentLoaded', () => {
     loadActivities();
     loadNews();
     loadTrending();
-    loadSchoolDropoutStats();
     loadInfrastructureReports();
+    loadSchoolDropoutStats();
+    
+    // Load attendance analytics for home page
+    if (typeof updateAttendanceStatistics === 'function') {
+        updateAttendanceStatistics();
+    }
 });
 
-
-
+// Draw charts with proper data
+setTimeout(() => {
+    // Get attendance statistics data
+    if (typeof calculateAttendanceStatistics === 'function') {
+        const stats = calculateAttendanceStatistics();
+        if (typeof drawAttendanceChart === 'function') {
+            drawAttendanceChart(stats);
+        }
+    }
+    
+    // Get sector and village statistics data
+    if (typeof calculateSectorStatistics === 'function') {
+        const { sectors, villages } = calculateSectorStatistics();
+        if (typeof drawSectorChart === 'function') {
+            drawSectorChart(sectors);
+        }
+        if (typeof drawVillageChart === 'function') {
+            drawVillageChart(villages);
+        }
+    }
+}, 100); // Small delay to ensure data is available

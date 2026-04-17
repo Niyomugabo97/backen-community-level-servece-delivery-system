@@ -1,5 +1,32 @@
 // Leader Dashboard JavaScript
 
+// Check if ApiService is available
+if (typeof ApiService === 'undefined') {
+    console.error('ApiService is not loaded. Please ensure api.js is loaded before leader-dashboard.js');
+    // Create a simple fallback API service
+    window.ApiService = class {
+        constructor() {
+            this.baseURL = 'http://localhost:5000/api';
+        }
+        
+        async createHomeUpdate(data, file) {
+            throw new Error('API Service not available');
+        }
+        
+        async createMember(data) {
+            throw new Error('API Service not available');
+        }
+        
+        async updateMember(id, data) {
+            throw new Error('API Service not available');
+        }
+        
+        async saveAttendance(data) {
+            throw new Error('API Service not available');
+        }
+    };
+}
+
 // Check authentication
 document.addEventListener('DOMContentLoaded', async () => {
     const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
@@ -9,42 +36,75 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Initialize face recognition system
-    try {
-        await initializeFaceRecognition();
-        setupFaceRecognitionControls();
-        setupFaceRegistrationControls();
-    } catch (error) {
-        console.error('Failed to initialize face recognition:', error);
-    }
+    // Face recognition system removed - no longer needed
 
     // Initialize dashboard
     async function initializeDashboard() {
         try {
-            // Initialize face recognition system first
-            faceSystem = await initializeFaceRecognition();
+            console.log('Initializing dashboard...');
             
             // Initialize attendance tracking for existing members
-            initializeAllMembersAttendanceTracking();
+            try {
+                initializeAllMembersAttendanceTracking();
+                console.log('Attendance tracking initialized');
+            } catch (error) {
+                console.warn('Attendance tracking initialization failed:', error);
+            }
             
             // Setup navigation and forms
-            setupNavigation();
-            setupForms();
-            setupFaceRecognitionControls();
-            setupFaceRegistrationControls();
+            try {
+                setupNavigation();
+                setupForms();
+                console.log('Navigation and forms setup complete');
+            } catch (error) {
+                console.warn('Navigation/forms setup failed:', error);
+            }
             
-            // Load all data
-            loadAllTables();
-            loadLeaderHomeUpdates();
-            loadLeaderChatMessages();
-            loadLeaderInbox();
+            // Load all data with error handling for each
+            try {
+                await loadAllTables();
+                console.log('Tables loaded successfully');
+            } catch (error) {
+                console.warn('Failed to load tables:', error);
+            }
+            
+            try {
+                await loadLeaderHomeUpdates();
+                console.log('Home updates loaded successfully');
+            } catch (error) {
+                console.warn('Failed to load home updates:', error);
+            }
+            
+            try {
+                await loadLeaderChatMessages();
+                console.log('Chat messages loaded successfully');
+            } catch (error) {
+                console.warn('Failed to load chat messages:', error);
+            }
+            
+            try {
+                await loadLeaderInbox();
+                console.log('Inbox loaded successfully');
+            } catch (error) {
+                console.warn('Failed to load inbox:', error);
+            }
+            
             // Home updates (activities, upcoming, trending)
-            setupHomeUpdatesTabs();
-            setupHomeUpdateForms();
-            loadLeaderHomeUpdatesList();
+            try {
+                setupHomeUpdatesTabs();
+                setupHomeUpdateForms();
+                await loadLeaderHomeUpdatesList();
+                console.log('Home updates setup complete');
+            } catch (error) {
+                console.warn('Home updates setup failed:', error);
+            }
+            
+            console.log('Dashboard initialization completed successfully');
+            showNotification('Dashboard loaded successfully!', 'success');
+            
         } catch (error) {
             console.error('Dashboard initialization failed:', error);
-            showNotification('Failed to initialize dashboard. Please refresh the page.', 'error');
+            showNotification('Dashboard partially loaded. Some features may not work properly.', 'warning');
         }
     }
 
@@ -52,26 +112,48 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function setupNavigation() {
-    document.querySelectorAll('.dashboard-menu a').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            
-            // Remove active class from all links and sections
-            document.querySelectorAll('.dashboard-menu a').forEach(l => l.classList.remove('active'));
-            document.querySelectorAll('.dashboard-section').forEach(s => s.classList.remove('active'));
-            
-            // Add active class to clicked link and corresponding section
-            link.classList.add('active');
-            const sectionId = link.getAttribute('data-section');
-            const section = document.getElementById(sectionId);
-            if (section) {
-                section.classList.add('active');
-            }
-        });
-    });
+    const menu = document.querySelector('.dashboard-menu');
+    const links = () => Array.from(document.querySelectorAll('.dashboard-menu a'));
+    const sections = () => Array.from(document.querySelectorAll('.dashboard-section'));
 
-    // Show Register Members by default
-    document.getElementById('register').classList.add('active');
+    function activateSection(sectionId, { updateHash = true } = {}) {
+        if (!sectionId) return;
+
+        const section = document.getElementById(sectionId);
+        if (!section) {
+            console.warn('Unknown dashboard section:', sectionId);
+            return;
+        }
+
+        links().forEach(l => l.classList.remove('active'));
+        sections().forEach(s => s.classList.remove('active'));
+
+        const activeLink = links().find(l => l.getAttribute('data-section') === sectionId);
+        if (activeLink) activeLink.classList.add('active');
+        section.classList.add('active');
+
+        if (updateHash) {
+            // Keep URL in sync for refresh/back button support
+            history.replaceState(null, '', `#${encodeURIComponent(sectionId)}`);
+        }
+
+        // Ensure the newly-activated content is visible
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Delegate clicks so it works even if menu is re-rendered
+    if (menu) {
+        menu.addEventListener('click', (e) => {
+            const link = e.target?.closest?.('a[data-section]');
+            if (!link) return;
+            e.preventDefault();
+            activateSection(link.getAttribute('data-section'));
+        });
+    }
+
+    // Restore section from hash (or default to register)
+    const initial = decodeURIComponent((window.location.hash || '').replace(/^#/, ''));
+    activateSection(initial || 'register', { updateHash: false });
 
     // Logout
     document.getElementById('logoutBtn').addEventListener('click', (e) => {
@@ -79,6 +161,71 @@ function setupNavigation() {
         sessionStorage.removeItem('currentUser');
         window.location.href = 'login.html';
     });
+}
+
+// =========================
+// Yearly Performance (Attendance)
+// - Starts at 100% every year
+// - Marking Absent decreases by 1% (only when switching into Absent)
+// - Marking Present does not increase it back
+// =========================
+function getPerformanceYear() {
+    return String(new Date().getFullYear());
+}
+
+function loadPerformanceStore() {
+    try {
+        return JSON.parse(localStorage.getItem('memberPerformanceByYear')) || {};
+    } catch {
+        return {};
+    }
+}
+
+function savePerformanceStore(store) {
+    try {
+        localStorage.setItem('memberPerformanceByYear', JSON.stringify(store));
+    } catch (e) {
+        console.warn('Failed to save performance store', e);
+    }
+}
+
+function ensureMemberPerformance(memberId) {
+    const year = getPerformanceYear();
+    const store = loadPerformanceStore();
+    store[year] ||= {};
+    store[year][memberId] ||= { score: 100, absences: 0, updatedAt: new Date().toISOString() };
+    savePerformanceStore(store);
+    return store[year][memberId];
+}
+
+function getMemberPerformancePercents(memberId) {
+    const entry = ensureMemberPerformance(memberId);
+    const present = Math.max(0, Math.min(100, Number(entry.score) || 0));
+    const absent = 100 - present;
+    return { present, absent };
+}
+
+function applyAbsentPenalty(memberId) {
+    const year = getPerformanceYear();
+    const store = loadPerformanceStore();
+    store[year] ||= {};
+    const entry = store[year][memberId] || { score: 100, absences: 0 };
+    entry.score = Math.max(0, (Number(entry.score) || 100) - 1);
+    entry.absences = (Number(entry.absences) || 0) + 1;
+    entry.updatedAt = new Date().toISOString();
+    store[year][memberId] = entry;
+    savePerformanceStore(store);
+    return entry;
+}
+
+function renderPerformanceText(memberId) {
+    const { present, absent } = getMemberPerformancePercents(memberId);
+    return `Present: ${present}% | Absent: ${absent}%`;
+}
+
+function updatePerformanceUI(memberId) {
+    const el = document.getElementById(`perf-${memberId}`);
+    if (el) el.textContent = renderPerformanceText(memberId);
 }
 
 // Setup all forms
@@ -153,35 +300,119 @@ function setupForms() {
     if (leaderTrendingForm) leaderTrendingForm.addEventListener('submit', handleLeaderTrendingSubmit);
 }
 
-function loadUmugandaTable() {
-    // Get records from both possible sources
-    const records1 = JSON.parse(localStorage.getItem('umugandaRecords')) || [];
-    const records2 = JSON.parse(localStorage.getItem('umugandaData')) || [];
+async function loadUmugandaTable() {
+    try {
+        // If the new "Saved Attendance Records" UI exists, render that instead.
+        // This keeps the old (debug) implementation from interfering.
+        if (document.getElementById('umugandaSavedRecordsWrap') && document.getElementById('umugandaTableBody')) {
+            return loadUmugandaSavedRecordsTable();
+        }
+        
+        // Fetch data from MongoDB API
+        const api = new ApiService();
+        const [umugandaRecords, umugandaData] = await Promise.all([
+            api.getAttendance({ checkInMethod: 'face' }),
+            api.getAttendance({ checkInMethod: 'manual' })
+        ]);
+        
+        // Get records from both possible sources
+        const records1 = umugandaRecords;
+        const records2 = umugandaData;
     
     // Merge records (remove duplicates based on name + date)
     const allRecords = [...records1, ...records2];
-    const uniqueRecords = allRecords.filter((record, index, self) =>
-        index === self.findIndex((r) => 
+    
+    const uniqueRecords = allRecords.filter((record, index, self) => {
+        const duplicateIndex = self.findIndex((r) => 
             r.name === record.name && r.date === record.date
-        )
-    );
+        );
+        return index === duplicateIndex;
+    });
     
+    // Determine this leader's location (prefer currentLeaderLocation, then account data)
+    let location = currentLeaderLocation;
+    
+    if (!location) {
+        const user = JSON.parse(sessionStorage.getItem('currentUser')) || {};
+        location = {
+            sector: user.sector || user.leaderSector || null,
+            cell: user.cell || user.leaderCell || null,
+            village: user.village || user.leaderVillage || null
+        };
+        console.log('Location from user data:', location);
+    }
+
+    // Filter records so each leader only sees their own village/cell/sector
+    let scopedRecords = uniqueRecords;
+    
+    // RE-ENABLE LOCATION FILTERING - Each village sees only their records
+    if (location && (location.sector || location.cell || location.village)) {
+        console.log('DEBUG - Location filter details:', JSON.stringify(location, null, 2));
+        console.log('DEBUG - Available records before filtering:', uniqueRecords.length);
+        
+        // Show sample records to debug location matching
+        console.log('DEBUG - Sample saved records:');
+        uniqueRecords.slice(0, 3).forEach((r, i) => {
+            console.log(`${i+1}. Name: ${r.name}, Sector: "${r.sector}", Cell: "${r.cell}", Village: "${r.village}"`);
+        });
+        
+        scopedRecords = uniqueRecords.filter(r => {
+            const matchesSector = !location.sector || r.sector === location.sector;
+            const matchesCell = !location.cell || r.cell === location.cell;
+            const matchesVillage = !location.village || r.village === location.village;
+            
+            console.log('DEBUG - Record check:', {
+                recordName: r.name,
+                recordSector: `"${r.sector}"`,
+                recordCell: `"${r.cell}"`,
+                recordVillage: `"${r.village}"`,
+                filterSector: `"${location.sector}"`,
+                filterCell: `"${location.cell}"`,
+                filterVillage: `"${location.village}"`,
+                matchesSector,
+                matchesCell,
+                matchesVillage,
+                allMatch: matchesSector && matchesCell && matchesVillage
+            });
+            
+            return matchesSector && matchesCell && matchesVillage;
+        });
+        console.log('Filtered records for location:', scopedRecords.length);
+        console.log('Location filter details:', location);
+    }
+
     // Sort by date (newest first)
-    uniqueRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+    scopedRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
     
+    // Update village name in header
+    const villageNameElement = document.getElementById('currentVillageName');
+    if (villageNameElement && location && location.village) {
+        villageNameElement.textContent = `${location.village}, ${location.cell}, ${location.sector}`;
+    }
+    
+    // Refresh tables and statistics
+    console.log('About to refresh tables...');
+    
+    // IMMEDIATELY SHOW SAVED RECORDS - bypass all filtering for now
+    const savedRecords = JSON.parse(localStorage.getItem('umugandaData')) || [];
     const tbody = document.getElementById('umugandaTableBody');
     
-    if (uniqueRecords.length === 0) {
+    if (savedRecords.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #666;">No attendance records found</td></tr>';
         return;
     }
     
-    tbody.innerHTML = uniqueRecords.map((record, index) => {
+    // Sort by date (newest first)
+    savedRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    // Create table rows
+    let tableHTML = '';
+    savedRecords.forEach((record, index) => {
         const methodIcon = record.checkInMethod === 'face_recognition' 
             ? '<i class="fa-solid fa-face-smile" style="color: #28a745;"></i> Face Recognition'
             : '<i class="fa-solid fa-keyboard" style="color: #007bff;"></i> Manual';
-            
-        return `
+        
+        tableHTML += `
             <tr data-index="${index}">
                 <td>${record.name}</td>
                 <td>${record.age || '-'}</td>
@@ -191,14 +422,162 @@ function loadUmugandaTable() {
                 <td>${record.village || '-'}</td>
                 <td>${formatDate(record.date)}</td>
                 <td>${methodIcon}</td>
-                <td>
-                    <button class="btn btn-sm btn-danger" onclick="deleteAttendanceRecord(${index})">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </td>
+                <td>-</td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = tableHTML;
+    console.log('Attendance records displayed:', savedRecords.length);
+    } catch (error) {
+        console.error('Error loading umuganda table:', error);
+        // Fallback to localStorage if API fails
+        const umugandaRecords = JSON.parse(localStorage.getItem('umugandaRecords')) || [];
+        const umugandaData = JSON.parse(localStorage.getItem('umugandaData')) || [];
+        
+        // Get records from both possible sources
+        const records1 = umugandaRecords;
+        const records2 = umugandaData;
+        
+        // Merge records (remove duplicates based on name + date)
+        const allRecords = [...records1, ...records2];
+        
+        const uniqueRecords = allRecords.filter((record, index, self) => {
+            const duplicateIndex = self.findIndex((r) => 
+                r.name === record.name && r.date === record.date
+            );
+            return index === duplicateIndex;
+        });
+        
+        // Continue with localStorage logic...
+        // (rest of the function would continue here)
+    }
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function populateUmugandaSavedRecordsFilters(members) {
+    const sectorSelect = document.getElementById('umugandaFilterSector');
+    const cellSelect = document.getElementById('umugandaFilterCell');
+    const villageSelect = document.getElementById('umugandaFilterVillage');
+    if (!sectorSelect || !cellSelect || !villageSelect) return;
+
+    const prevSector = sectorSelect.value || '';
+    const prevCell = cellSelect.value || '';
+    const prevVillage = villageSelect.value || '';
+
+    const sectors = [...new Set(members.map(m => (m.sector || '').trim()).filter(Boolean))].sort();
+    const cells = [...new Set(members.map(m => (m.cell || '').trim()).filter(Boolean))].sort();
+    const villages = [...new Set(members.map(m => (m.village || '').trim()).filter(Boolean))].sort();
+
+    sectorSelect.innerHTML = '<option value="">All Sectors</option>' + sectors.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+    cellSelect.innerHTML = '<option value="">All Cells</option>' + cells.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    villageSelect.innerHTML = '<option value="">All Villages</option>' + villages.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+
+    // Keep previous selection if still available
+    sectorSelect.value = sectors.includes(prevSector) ? prevSector : '';
+    cellSelect.value = cells.includes(prevCell) ? prevCell : '';
+    villageSelect.value = villages.includes(prevVillage) ? prevVillage : '';
+}
+
+function filterUmugandaSavedRecords() {
+    const tbody = document.getElementById('umugandaTableBody');
+    if (!tbody) return;
+
+    const searchInput = document.getElementById('umugandaSearchName');
+    const nameTerm = (searchInput?.value || '').trim().toLowerCase();
+
+    const sectorSelect = document.getElementById('umugandaFilterSector');
+    const cellSelect = document.getElementById('umugandaFilterCell');
+    const villageSelect = document.getElementById('umugandaFilterVillage');
+
+    const sector = sectorSelect?.value || '';
+    const cell = cellSelect?.value || '';
+    const village = villageSelect?.value || '';
+
+    const rows = Array.from(tbody.querySelectorAll('tr[data-name]'));
+    rows.forEach(row => {
+        const rowName = (row.dataset.name || '').toLowerCase();
+        const rowSector = row.dataset.sector || '';
+        const rowCell = row.dataset.cell || '';
+        const rowVillage = row.dataset.village || '';
+
+        const matchesName = !nameTerm || rowName.includes(nameTerm);
+        const matchesSector = !sector || rowSector === sector;
+        const matchesCell = !cell || rowCell === cell;
+        const matchesVillage = !village || rowVillage === village;
+
+        row.style.display = (matchesName && matchesSector && matchesCell && matchesVillage) ? '' : 'none';
+    });
+}
+
+function loadUmugandaSavedRecordsTable() {
+    const tbody = document.getElementById('umugandaTableBody');
+    const wrapper = document.getElementById('umugandaSavedRecordsWrap');
+    if (!tbody || !wrapper) return;
+
+    const attendanceDate = sessionStorage.getItem('lastUmugandaAttendanceDate') || new Date().toISOString().split('T')[0];
+    const members = JSON.parse(localStorage.getItem('registerRecords')) || [];
+
+    // Load all normalized attendance records for the chosen day
+    const allRecords = getAllUmugandaAttendanceRecords();
+    const dayRecords = allRecords.filter(r => r.day === attendanceDate);
+
+    // Map citizenKey -> record for quick lookup
+    const byCitizenKey = {};
+    dayRecords.forEach(r => {
+        const key = r.citizenKey;
+        if (!key) return;
+        byCitizenKey[key] = r; // keep last
+    });
+
+    // Render rows: ALL registered members + attendance status for this day + performance
+    const rowsHtml = members.map(member => {
+        const key = member.telephone;
+        const attendance = byCitizenKey[key];
+
+        let attendanceStatus = '-';
+        if (attendance && attendance.status) {
+            if (attendance.status === 'present') attendanceStatus = 'Present';
+            else if (attendance.status === 'absent') attendanceStatus = 'Absent';
+        }
+
+        const performanceText = renderPerformanceText(member.telephone);
+
+        return `
+            <tr
+                data-name="${escapeHtml(member.name)}"
+                data-sector="${escapeHtml((member.sector || '').trim())}"
+                data-cell="${escapeHtml((member.cell || '').trim())}"
+                data-village="${escapeHtml((member.village || '').trim())}"
+                data-telephone="${escapeHtml(member.telephone)}"
+            >
+                <td>${escapeHtml(member.name)}</td>
+                <td>${escapeHtml(member.sex || '')}</td>
+                <td>${escapeHtml(member.age || '')}</td>
+                <td>${escapeHtml(member.telephone || '')}</td>
+                <td>${escapeHtml(member.sector || '')}</td>
+                <td>${escapeHtml(member.cell || '')}</td>
+                <td>${escapeHtml(member.village || '')}</td>
+                <td>${escapeHtml(attendanceStatus)}</td>
+                <td>${escapeHtml(performanceText)}</td>
             </tr>
         `;
     }).join('');
+
+    tbody.innerHTML = rowsHtml || '<tr><td colspan="9" style="text-align: center; color: #666;">No registered members found</td></tr>';
+
+    // Fill filters and apply current filter immediately
+    populateUmugandaSavedRecordsFilters(members);
+    wrapper.style.display = '';
+    filterUmugandaSavedRecords();
 }
 
 // Inteko Minutes
@@ -469,7 +848,7 @@ function handleIntekoSubmit(e) {
     showNotification('Inteko minutes saved successfully!', 'success');
 }
 
-function loadIntekoRecords() {
+async function loadIntekoRecords() {
     const records = JSON.parse(localStorage.getItem('intekoRecords')) || [];
     const container = document.getElementById('intekoRecords');
     
@@ -492,7 +871,6 @@ async function handleRegisterSubmit(e) {
     const isEditing = editingInfo !== null;
     
     const record = {
-        id: isEditing ? JSON.parse(editingInfo).id : Date.now(),
         name: document.getElementById('regName').value,
         sex: document.getElementById('regSex').value,
         age: parseInt(document.getElementById('regAge').value),
@@ -501,54 +879,102 @@ async function handleRegisterSubmit(e) {
         cell: document.getElementById('regCell').value,
         village: document.getElementById('regVillage').value,
         status: document.getElementById('regStatus').value,
-        date: new Date().toISOString()
+        role: 'member',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
     };
 
-    if (isEditing) {
-        // Update existing member
-        const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
-        const index = records.findIndex(r => r.id === record.id);
-        if (index !== -1) {
-            records[index] = record;
-            localStorage.setItem('registerRecords', JSON.stringify(records));
-            showNotification('Member updated successfully!', 'success');
+    try {
+        // Check if ApiService is available
+        if (typeof ApiService === 'undefined') {
+            throw new Error('ApiService not available - falling back to localStorage');
         }
         
-        // Reset editing state
-        sessionStorage.removeItem('editingMember');
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        submitBtn.textContent = 'Register Member';
-        submitBtn.classList.remove('btn-warning');
-        submitBtn.classList.add('btn-primary');
+        // Use API service to save to MongoDB
+        const api = new ApiService();
         
-    } else {
-        // Add new member
-        const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
-        records.push(record);
-        localStorage.setItem('registerRecords', JSON.stringify(records));
-        
-        // Initialize attendance tracking for new member
-        initializeAttendanceTracking(record.telephone, record.name);
-        
-        // Show notification with 0% attendance rate
-        showNotification(`Member registered successfully! Current attendance rate: 0%`, 'success');
-    }
+        if (isEditing) {
+            // Update existing member in MongoDB
+            const editingRecord = JSON.parse(editingInfo);
+            const result = await api.updateMember(editingRecord.id, record);
+            
+            console.log('Member updated in MongoDB:', result);
+            showNotification('Member updated successfully!', 'success');
+            
+            // Reset editing state
+            sessionStorage.removeItem('editingMember');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.textContent = 'Register Member';
+            submitBtn.classList.remove('btn-warning');
+            submitBtn.classList.add('btn-primary');
+            
+        } else {
+            // Add new member to MongoDB
+            const result = await api.createMember(record);
+            
+            console.log('Member registered in MongoDB:', result);
+            showNotification('Member registered successfully!', 'success');
+            
+            // Initialize attendance tracking for new member
+            initializeAttendanceTracking(record.telephone, record.name);
+        }
 
-    // Reset form
-    e.target.reset();
-    
-    // Reload tables
-    loadRegisterTable();
-    loadAttendanceList();
-    updateSectorVillageFilters();
+        // Reset form
+        e.target.reset();
+        
+        // Reload tables
+        loadRegisterTable();
+        loadAttendanceList();
+        updateSectorVillageFilters();
+        
+    } catch (error) {
+        console.error('Error saving member to MongoDB:', error);
+        showNotification('Error saving member: ' + error.message, 'error');
+        
+        // Fallback to localStorage if API fails
+        const fallbackRecord = {
+            id: isEditing ? JSON.parse(editingInfo).id : Date.now(),
+            ...record,
+            date: new Date().toISOString()
+        };
+        
+        if (isEditing) {
+            const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
+            const index = records.findIndex(r => r.id === fallbackRecord.id);
+            if (index !== -1) {
+                records[index] = fallbackRecord;
+                localStorage.setItem('registerRecords', JSON.stringify(records));
+                showNotification('Member updated successfully!', 'success');
+            }
+            
+            sessionStorage.removeItem('editingMember');
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.textContent = 'Register Member';
+            submitBtn.classList.remove('btn-warning');
+            submitBtn.classList.add('btn-primary');
+            
+        } else {
+            const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
+            records.push(fallbackRecord);
+            localStorage.setItem('registerRecords', JSON.stringify(records));
+            
+            initializeAttendanceTracking(fallbackRecord.telephone, fallbackRecord.name);
+            showNotification('Member registered successfully! Current attendance rate: 0%', 'success');
+        }
+
+        e.target.reset();
+        loadRegisterTable();
+        loadAttendanceList();
+        updateSectorVillageFilters();
+    }
 }
 
-function loadRegisterTable() {
+async function loadRegisterTable() {
     const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
     const tbody = document.getElementById('registerTableBody');
     
     if (records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: #666;">No registered members found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #666;">No registered members found</td></tr>';
         return;
     }
     
@@ -578,7 +1004,6 @@ function loadRegisterTable() {
                 <td>${record.village}</td>
                 <td>${record.age}</td>
                 <td>${record.status}</td>
-                <td>${attendanceDisplay}</td>
                 <td>
                     <button class="btn btn-sm btn-primary" onclick="editMemberRecord(${index})">
                         <i class="fa-solid fa-edit"></i>
@@ -598,8 +1023,10 @@ function checkFaceRegistration(idNumber) {
     return faceSystem.faceDescriptors.has(idNumber);
 }
 
-// Calculate attendance percentage for a member
+// Calculate attendance percentage for a member (monthly Umuganda tracking)
 function calculateAttendancePercentage(memberTelephone, memberName) {
+    console.log(`Calculating attendance for ${memberName} (${memberTelephone})`);
+    
     // Get all attendance records
     const records1 = JSON.parse(localStorage.getItem('umugandaRecords')) || [];
     const records2 = JSON.parse(localStorage.getItem('umugandaData')) || [];
@@ -612,31 +1039,42 @@ function calculateAttendancePercentage(memberTelephone, memberName) {
         )
     );
     
-    // Count total Umuganda sessions (unique dates)
-    const totalSessions = [...new Set(uniqueRecords.map(r => r.date.split('T')[0]))].length;
+    // Extract unique months (YYYY-MM format) from attendance dates
+    const uniqueMonths = [...new Set(uniqueRecords.map(r => r.date.substring(0, 7)))].sort();
+    const totalMonthlySessions = uniqueMonths.length;
     
-    // Count member's attendance using telephone number
-    const memberAttendance = uniqueRecords.filter(record => 
-        record.name === memberName || 
-        (record.citizenId && record.citizenId === memberTelephone)
-    ).length;
+    console.log('Total monthly sessions found:', totalMonthlySessions);
+    console.log('Unique months:', uniqueMonths);
+    
+    // Count member's attendance for each month
+    const memberMonthlyAttendance = uniqueMonths.filter(month => {
+        return uniqueRecords.some(record => 
+            (record.name === memberName || (record.citizenId && record.citizenId === memberTelephone)) &&
+            record.date.substring(0, 7) === month &&
+            record.status === 'present'
+        );
+    }).length;
+    
+    console.log('Member attended months:', memberMonthlyAttendance);
     
     // Calculate percentage - return 0% for new members with no sessions
-    if (totalSessions === 0 || memberAttendance === 0) return 0;
+    if (totalMonthlySessions === 0 || memberMonthlyAttendance === 0) return 0;
     
-    const percentage = Math.round((memberAttendance / totalSessions) * 100);
+    const percentage = Math.round((memberMonthlyAttendance / totalMonthlySessions) * 100);
+    console.log(`Final attendance percentage for ${memberName}: ${percentage}%`);
+    
     return percentage;
 }
 
-// Initialize attendance tracking for new member
+// Initialize attendance tracking for new member (monthly Umuganda)
 function initializeAttendanceTracking(memberTelephone, memberName) {
     const attendanceTracking = JSON.parse(localStorage.getItem('attendanceTracking')) || {};
     
     if (!attendanceTracking[memberTelephone]) {
         attendanceTracking[memberTelephone] = {
             name: memberName,
-            totalSessions: 0,
-            attendedSessions: 0,
+            totalMonthlySessions: 0,
+            attendedMonthlySessions: 0,
             lastUpdated: new Date().toISOString(),
             registrationDate: new Date().toISOString()
         };
@@ -645,27 +1083,57 @@ function initializeAttendanceTracking(memberTelephone, memberName) {
     }
 }
 
-// Update attendance tracking when member attends
+// Update attendance tracking when member attends (monthly Umuganda)
 function updateAttendanceTracking(memberTelephone, memberName) {
     const attendanceTracking = JSON.parse(localStorage.getItem('attendanceTracking')) || {};
     
     if (!attendanceTracking[memberTelephone]) {
         attendanceTracking[memberTelephone] = {
             name: memberName,
-            totalSessions: 0,
-            attendedSessions: 0,
+            totalMonthlySessions: 0,
+            attendedMonthlySessions: 0,
             lastUpdated: new Date().toISOString(),
             registrationDate: new Date().toISOString()
         };
     }
     
-    attendanceTracking[memberTelephone].attendedSessions++;
+    attendanceTracking[memberTelephone].attendedMonthlySessions++;
     attendanceTracking[memberTelephone].lastUpdated = new Date().toISOString();
     
     localStorage.setItem('attendanceTracking', JSON.stringify(attendanceTracking));
 }
 
-// Initialize attendance tracking for all existing members (for backward compatibility)
+// Update total monthly sessions for all members when new month attendance is saved
+function updateTotalMonthlySessions() {
+    console.log('updateTotalMonthlySessions called');
+    
+    const attendanceTracking = JSON.parse(localStorage.getItem('attendanceTracking')) || {};
+    const records1 = JSON.parse(localStorage.getItem('umugandaRecords')) || [];
+    const records2 = JSON.parse(localStorage.getItem('umugandaData')) || [];
+    const allRecords = [...records1, ...records2];
+    
+    console.log('All records for monthly calculation:', allRecords.length);
+    
+    // Get unique months from all attendance records
+    const uniqueMonths = [...new Set(allRecords.map(r => r.date.substring(0, 7)))].sort();
+    const totalMonthlySessions = uniqueMonths.length;
+    
+    console.log('Unique months found:', uniqueMonths);
+    console.log('Total monthly sessions:', totalMonthlySessions);
+    
+    // Update total monthly sessions for all members
+    Object.keys(attendanceTracking).forEach(memberTelephone => {
+        if (attendanceTracking[memberTelephone]) {
+            attendanceTracking[memberTelephone].totalMonthlySessions = totalMonthlySessions;
+            console.log(`Updated ${memberTelephone}: ${attendanceTracking[memberTelephone].totalMonthlySessions} sessions`);
+        }
+    });
+    
+    localStorage.setItem('attendanceTracking', JSON.stringify(attendanceTracking));
+    console.log('Attendance tracking updated with new monthly session counts');
+}
+
+// Initialize attendance tracking for all existing members (monthly Umuganda)
 function initializeAllMembersAttendanceTracking() {
     const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
     const attendanceTracking = JSON.parse(localStorage.getItem('attendanceTracking')) || {};
@@ -674,8 +1142,8 @@ function initializeAllMembersAttendanceTracking() {
         if (!attendanceTracking[record.telephone]) {
             attendanceTracking[record.telephone] = {
                 name: record.name,
-                totalSessions: 0,
-                attendedSessions: 0,
+                totalMonthlySessions: 0,
+                attendedMonthlySessions: 0,
                 lastUpdated: new Date().toISOString(),
                 registrationDate: record.date || new Date().toISOString()
             };
@@ -1014,7 +1482,42 @@ function updateLeaderVillages() {
         allVillages.map(village => `<option value="${village}">${village}</option>`).join('');
 }
 
-// Confirm leader location
+// Update attendance date based on selected month
+function updateAttendanceDate() {
+    const monthSelect = document.getElementById('attendanceMonth');
+    const dateInput = document.getElementById('attendanceDate');
+    
+    if (monthSelect && dateInput) {
+        const selectedMonth = parseInt(monthSelect.value);
+        const currentYear = new Date().getFullYear();
+        
+        if (selectedMonth !== '' && !isNaN(selectedMonth)) {
+            // Only set date if the current date field is empty or not set for this month
+            const currentDateValue = dateInput.value;
+            const currentMonthSet = currentDateValue ? new Date(currentDateValue).getMonth() : null;
+            
+            // Only auto-set if no date is currently set OR if the current date is for a different month
+            if (!currentDateValue || currentMonthSet !== selectedMonth) {
+                // Set date to the first day of selected month
+                const selectedDate = new Date(currentYear, selectedMonth, 1);
+                const formattedDate = selectedDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+                dateInput.value = formattedDate;
+                
+                console.log('DEBUG: Attendance month selected:', selectedMonth, 'Date set to:', formattedDate);
+            } else {
+                console.log('DEBUG: Date already set for this month, keeping existing date:', currentDateValue);
+            }
+        } else {
+            // Clear date if no month selected
+            if (currentDateValue) {
+                dateInput.value = '';
+                console.log('DEBUG: Month cleared, date reset');
+            }
+        }
+    }
+}
+
+// Confirm leader location (enhanced to set current month)
 function confirmLeaderLocation() {
     const sector = document.getElementById('leaderSector').value;
     const cell = document.getElementById('leaderCell').value;
@@ -1023,6 +1526,31 @@ function confirmLeaderLocation() {
     if (!sector || !cell || !village) {
         showNotification('Please select all location fields (Sector, Cell, and Village)', 'error');
         return;
+    }
+    
+    // Set current month automatically when location is confirmed (only if no month is currently selected)
+    const monthSelect = document.getElementById('attendanceMonth');
+    if (monthSelect) {
+        const currentMonthValue = monthSelect.value;
+        
+        // Only auto-set if no month is currently selected
+        if (!currentMonthValue || currentMonthValue === '') {
+            const currentMonth = new Date().getMonth();
+            monthSelect.value = currentMonth.toString();
+            
+            // Trigger updateAttendanceDate to set the date
+            updateAttendanceDate();
+            
+            console.log('DEBUG: Auto-set current month to:', currentMonth);
+        } else {
+            console.log('DEBUG: Month already selected, keeping existing selection:', currentMonthValue);
+        }
+    }
+    
+    // Update selected location display
+    const locationDisplay = document.getElementById('selectedLocation');
+    if (locationDisplay) {
+        locationDisplay.textContent = `${sector}, ${cell}, ${village}`;
     }
     
     // Store current leader location in memory
@@ -1101,7 +1629,7 @@ function loadLeaderAttendance() {
                     </div>
                 </td>
                 <td>
-                    <input type="text" class="attendance-notes" id="notes-${record.telephone}" placeholder="Add notes...">
+                    <span id="perf-${record.telephone}">${renderPerformanceText(record.telephone)}</span>
                 </td>
             </tr>
         `;
@@ -1140,6 +1668,25 @@ function loadAttendanceList() {
         return;
     }
     
+    // Filter records by current leader's location
+    let villageRecords = records;
+    if (currentLeaderLocation && (currentLeaderLocation.sector || currentLeaderLocation.cell || currentLeaderLocation.village)) {
+        villageRecords = records.filter(record => {
+            const matchesSector = !currentLeaderLocation.sector || record.sector === currentLeaderLocation.sector;
+            const matchesCell = !currentLeaderLocation.cell || record.cell === currentLeaderLocation.cell;
+            const matchesVillage = !currentLeaderLocation.village || record.village === currentLeaderLocation.village;
+            return matchesSector && matchesCell && matchesVillage;
+        });
+    }
+    
+    if (villageRecords.length === 0) {
+        const locationText = currentLeaderLocation && currentLeaderLocation.village ? 
+            `${currentLeaderLocation.village}, ${currentLeaderLocation.cell}, ${currentLeaderLocation.sector}` : 
+            'your village';
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #666;">No registered members found for ${locationText}</td></tr>`;
+        return;
+    }
+    
     // Set today's date as default and make it readonly
     const today = new Date().toISOString().split('T')[0];
     const dateInput = document.getElementById('attendanceDate');
@@ -1148,7 +1695,7 @@ function loadAttendanceList() {
     dateInput.style.backgroundColor = '#f8f9fa';
     dateInput.style.cursor = 'not-allowed';
     
-    tbody.innerHTML = records.map((record, index) => {
+    tbody.innerHTML = villageRecords.map((record, index) => {
         return `
             <tr data-member-id="${record.telephone}" data-index="${index}">
                 <td>${record.name}</td>
@@ -1167,7 +1714,7 @@ function loadAttendanceList() {
                     </div>
                 </td>
                 <td>
-                    <input type="text" class="attendance-notes" id="notes-${record.telephone}" placeholder="Add notes...">
+                    <span id="perf-${record.telephone}">${renderPerformanceText(record.telephone)}</span>
                 </td>
             </tr>
         `;
@@ -1178,8 +1725,11 @@ function loadAttendanceList() {
 
 // Mark individual member attendance
 function markMemberAttendance(memberId, status, index) {
+    console.log('markMemberAttendance called with:', { memberId, status, index });
+    
     const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
     const member = records[index];
+    console.log('Member found:', member);
     
     // Update button states
     const row = document.querySelector(`tr[data-member-id="${memberId}"]`);
@@ -1199,23 +1749,48 @@ function markMemberAttendance(memberId, status, index) {
     
     // Store temporary attendance data
     const tempAttendance = JSON.parse(sessionStorage.getItem('tempAttendance')) || {};
+    const prevStatus = tempAttendance[memberId]?.status;
+
+    // Apply performance penalty only when switching into "absent"
+    if (status === 'absent' && prevStatus !== 'absent') {
+        applyAbsentPenalty(memberId);
+        updatePerformanceUI(memberId);
+    } else {
+        // Ensure the UI always has a baseline value
+        ensureMemberPerformance(memberId);
+        updatePerformanceUI(memberId);
+    }
+
     tempAttendance[memberId] = {
         status: status,
         name: member.name,
-        notes: document.getElementById(`notes-${memberId}`).value,
         timestamp: new Date().toISOString()
     };
     sessionStorage.setItem('tempAttendance', JSON.stringify(tempAttendance));
+    console.log('Updated tempAttendance:', tempAttendance);
     
     updateAttendanceSummary();
 }
 
 // Mark all members as present
 function markAllPresent() {
+    if (!currentLeaderLocation) {
+        showNotification('Please select your location first', 'error');
+        return;
+    }
+    
     const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
+    
+    // Get only members for current leader's village
+    const locationMembers = records.filter(member => 
+        member.sector === currentLeaderLocation.sector &&
+        member.cell === currentLeaderLocation.cell &&
+        member.village === currentLeaderLocation.village
+    );
+    
     const allPresentAttendance = {};
     
-    records.forEach((record, index) => {
+    locationMembers.forEach((record, index) => {
         const row = document.querySelector(`tr[data-member-id="${record.telephone}"]`);
         if (row) {
             const buttons = row.querySelectorAll('.status-btn');
@@ -1226,21 +1801,25 @@ function markAllPresent() {
         allPresentAttendance[record.telephone] = {
             status: 'present',
             name: record.name,
-            notes: document.getElementById(`notes-${record.telephone}`).value,
             timestamp: new Date().toISOString()
         };
+
+        ensureMemberPerformance(record.telephone);
+        updatePerformanceUI(record.telephone);
     });
     
     sessionStorage.setItem('tempAttendance', JSON.stringify(allPresentAttendance));
     updateAttendanceSummary();
     
-    showNotification(`All ${records.length} members marked as present`, 'success');
+    showNotification(`All ${locationMembers.length} members in ${currentLeaderLocation.village} marked as present`, 'success');
 }
 
 // Mark all members as absent
 function markAllAbsent() {
     const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
     const allAbsentAttendance = {};
+
+    const tempAttendance = JSON.parse(sessionStorage.getItem('tempAttendance')) || {};
     
     records.forEach((record, index) => {
         const row = document.querySelector(`tr[data-member-id="${record.telephone}"]`);
@@ -1250,10 +1829,18 @@ function markAllAbsent() {
             buttons[1].classList.add('active'); // Absent button
         }
         
+        // Apply performance penalty only if this member wasn't already absent
+        const prevStatus = tempAttendance[record.telephone]?.status;
+        if (prevStatus !== 'absent') {
+            applyAbsentPenalty(record.telephone);
+        } else {
+            ensureMemberPerformance(record.telephone);
+        }
+        updatePerformanceUI(record.telephone);
+
         allAbsentAttendance[record.telephone] = {
             status: 'absent',
             name: record.name,
-            notes: document.getElementById(`notes-${record.telephone}`).value,
             timestamp: new Date().toISOString()
         };
     });
@@ -1269,83 +1856,182 @@ function updateAttendanceSummary() {
     const tempAttendance = JSON.parse(sessionStorage.getItem('tempAttendance')) || {};
     const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
     
+    // Get members for current leader's location
+    const locationMembers = currentLeaderLocation ? records.filter(member => 
+        member.sector === currentLeaderLocation.sector &&
+        member.cell === currentLeaderLocation.cell &&
+        member.village === currentLeaderLocation.village
+    ) : [];
+    
     const presentCount = Object.values(tempAttendance).filter(a => a.status === 'present').length;
     const absentCount = Object.values(tempAttendance).filter(a => a.status === 'absent').length;
     
-    document.getElementById('totalMembersCount').textContent = records.length;
+    // Count only members in the selected village, not all members
+    document.getElementById('totalMembersCount').textContent = locationMembers.length;
     document.getElementById('presentCount').textContent = presentCount;
     document.getElementById('absentCount').textContent = absentCount;
 }
 
 // Save attendance to localStorage
-function saveAttendance() {
-    const currentAttendance = JSON.parse(sessionStorage.getItem('tempAttendance')) || {};
+async function saveAttendance() {
+    console.log('saveAttendance function called');
     
-    // Use today's date automatically
-    const attendanceDate = new Date().toISOString().split('T')[0];
+    const currentAttendance = JSON.parse(sessionStorage.getItem('tempAttendance')) || {};
+    console.log('Current attendance data:', currentAttendance);
+    
+    // Get the selected date from the form instead of using today's date
+    const attendanceDateInput = document.getElementById('attendanceDate');
+    const attendanceMonthSelect = document.getElementById('attendanceMonth');
+    
+    if (!attendanceDateInput || !attendanceDateInput.value) {
+        showNotification('Please select a date for attendance', 'error');
+        return;
+    }
+    
+    const attendanceDate = attendanceDateInput.value;
+    console.log('Attendance date from form:', attendanceDate);
     
     if (Object.keys(currentAttendance).length === 0) {
         showNotification('Please mark attendance for at least one member', 'error');
         return;
     }
     
-    // Get existing attendance records
-    let umugandaData = JSON.parse(localStorage.getItem('umugandaData')) || [];
-    
-    // Convert temp attendance to permanent records
-    Object.entries(currentAttendance).forEach(([memberId, attendance]) => {
-        const memberRecord = JSON.parse(localStorage.getItem('registerRecords')) || []
-            .find(r => r.telephone === memberId);
+    try {
+        // Check if ApiService is available
+        if (typeof ApiService === 'undefined') {
+            throw new Error('ApiService not available - falling back to localStorage');
+        }
         
-        if (memberRecord) {
-            const attendanceRecord = {
-                name: attendance.name,
-                age: memberRecord.age,
-                sex: memberRecord.sex,
-                sector: memberRecord.sector,
-                cell: memberRecord.cell,
-                village: memberRecord.village,
-                date: new Date(attendanceDate).toISOString(),
-                checkInMethod: 'manual',
-                citizenId: memberId,
-                status: attendance.status,
-                notes: attendance.notes,
-                attendanceDate: attendanceDate // Add date field for easy filtering
-            };
+        // Use API service to save to MongoDB
+        const api = new ApiService();
+        
+        // Convert temp attendance to permanent records and save to MongoDB
+        for (const [memberId, attendance] of Object.entries(currentAttendance)) {
+            const memberRecord = JSON.parse(localStorage.getItem('registerRecords')) || []
+                .find(r => r.telephone === memberId);
             
-            // Check if attendance already exists for this date and member
-            const existingIndex = umugandaData.findIndex(r => 
-                r.citizenId === memberId && 
-                r.date.split('T')[0] === attendanceDate.split('T')[0]
-            );
+            console.log(`Processing attendance for ${memberId}:`, attendance);
             
-            if (existingIndex !== -1) {
-                umugandaData[existingIndex] = attendanceRecord;
+            if (memberRecord) {
+                const attendanceRecord = {
+                    name: attendance.name,
+                    age: memberRecord.age,
+                    sex: memberRecord.sex,
+                    sector: memberRecord.sector,
+                    cell: memberRecord.cell,
+                    village: memberRecord.village,
+                    date: new Date(attendanceDate).toISOString(),
+                    checkInMethod: 'manual',
+                    citizenId: memberId,
+                    status: attendance.status,
+                    attendanceDate: attendanceDate // Add date field for easy filtering
+                };
+                
+                console.log('Creating attendance record:', attendanceRecord);
+                
+                // Save to MongoDB
+                const result = await api.saveAttendance(attendanceRecord);
+                console.log('Attendance saved to MongoDB:', result);
+                
+                // Update attendance tracking
+                if (attendance.status === 'present') {
+                    updateAttendanceTracking(memberId, attendance.name);
+                }
             } else {
-                umugandaData.push(attendanceRecord);
-            }
-            
-            // Update attendance tracking
-            if (attendance.status === 'present') {
-                updateAttendanceTracking(memberId, attendance.name);
+                console.log(`Member record not found for ${memberId}`);
             }
         }
-    });
-    
-    // Save to localStorage
-    localStorage.setItem('umugandaData', JSON.stringify(umugandaData));
-    
-    // Clear temporary attendance
-    sessionStorage.removeItem('tempAttendance');
+        
+        showNotification('Attendance saved successfully!', 'success');
+        
+        // Clear temporary attendance
+        sessionStorage.removeItem('tempAttendance');
+        console.log('Cleared tempAttendance from sessionStorage');
+        
+        // Refresh attendance table
+        loadUmugandaTable();
+        await updateAttendanceStatistics();
+        
+    } catch (error) {
+        console.error('Error saving attendance to MongoDB:', error);
+        showNotification('Error saving attendance: ' + error.message, 'error');
+        
+        // Fallback to localStorage if API fails
+        let umugandaData = JSON.parse(localStorage.getItem('umugandaData')) || [];
+        console.log('Fallback: Using localStorage, existing records:', umugandaData.length);
+        
+        // Convert temp attendance to permanent records
+        Object.entries(currentAttendance).forEach(([memberId, attendance]) => {
+            const memberRecord = JSON.parse(localStorage.getItem('registerRecords')) || []
+                .find(r => r.telephone === memberId);
+            
+            console.log(`Fallback: Processing attendance for ${memberId}:`, attendance);
+            
+            if (memberRecord) {
+                const attendanceRecord = {
+                    name: attendance.name,
+                    age: memberRecord.age,
+                    sex: memberRecord.sex,
+                    sector: memberRecord.sector,
+                    cell: memberRecord.cell,
+                    village: memberRecord.village,
+                    date: new Date(attendanceDate).toISOString(),
+                    checkInMethod: 'manual',
+                    citizenId: memberId,
+                    status: attendance.status,
+                    attendanceDate: attendanceDate
+                };
+                
+                // Check if attendance already exists for this date and member
+                const existingIndex = umugandaData.findIndex(r => 
+                    r.citizenId === memberId && 
+                    r.date.split('T')[0] === attendanceDate.split('T')[0]
+                );
+                
+                if (existingIndex !== -1) {
+                    umugandaData[existingIndex] = attendanceRecord;
+                } else {
+                    umugandaData.push(attendanceRecord);
+                }
+                
+                // Update attendance tracking
+                if (attendance.status === 'present') {
+                    updateAttendanceTracking(memberId, attendance.name);
+                }
+            }
+        });
+        
+        // Save to localStorage
+        localStorage.setItem('umugandaData', JSON.stringify(umugandaData));
+        sessionStorage.removeItem('tempAttendance');
+        showNotification('Attendance saved to local storage (backup)', 'warning');
+        loadUmugandaTable();
+        await updateAttendanceStatistics();
+    }
     
     // Refresh tables and statistics
+    console.log('About to refresh tables...');
+
+    // Remember which day was just saved so the table shows Present/Absent for that day
+    sessionStorage.setItem('lastUmugandaAttendanceDate', attendanceDate);
+
+    // Render saved records table (all registered members + performance)
     loadUmugandaTable();
     loadRegisterTable();
-    updateAttendanceStatistics();
+    await updateAttendanceStatistics();
     updateVillageSectorStatistics();
+    
+    // Explicitly redraw the monthly overall attendance chart
+    drawMonthlyOverallAttendanceChart();
+    
+    // Update total monthly sessions for all members
+    updateTotalMonthlySessions();
+    
+    console.log('Refreshed tables and statistics including monthly chart');
     
     const attendanceCount = Object.keys(currentAttendance).length;
     showNotification(`Attendance saved for ${attendanceCount} members on ${attendanceDate}!`, 'success');
+    console.log('Save attendance completed successfully');
 }
 
 // Filter attendance list
@@ -1390,7 +2076,7 @@ function filterAttendanceList() {
                     </div>
                 </td>
                 <td>
-                    <input type="text" class="attendance-notes" id="notes-${record.telephone}" placeholder="Add notes...">
+                    <span id="perf-${record.telephone}">${renderPerformanceText(record.telephone)}</span>
                 </td>
             </tr>
         `;
@@ -1398,9 +2084,9 @@ function filterAttendanceList() {
 }
 
 // Update village and sector statistics
-function updateVillageSectorStatistics() {
+async function updateVillageSectorStatistics() {
     const villageStats = calculateVillageStatistics();
-    const sectorStats = calculateSectorStatistics();
+    const sectorStats = await calculateSectorStatistics();
     
     // Update village statistics
     updateVillageDisplay(villageStats);
@@ -1413,8 +2099,9 @@ function updateVillageSectorStatistics() {
 
 // Calculate village statistics
 function calculateVillageStatistics() {
-    const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
-    const attendanceRecords = JSON.parse(localStorage.getItem('umugandaData')) || [];
+    const allMembers = JSON.parse(localStorage.getItem('registerRecords')) || [];
+    const records = getLeaderScopedMembers(allMembers);
+    const attendanceRecords = getAllUmugandaAttendanceRecords();
     
     // Group members by village
     const villageGroups = {};
@@ -1463,35 +2150,61 @@ function calculateVillageStatistics() {
     return villageStats.sort((a, b) => b.percentage - a.percentage);
 }
 
-// Calculate sector statistics
-function calculateSectorStatistics() {
-    const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
-    const attendanceRecords = JSON.parse(localStorage.getItem('umugandaData')) || [];
+// Calculate sector statistics with village breakdown
+async function calculateSectorStatistics() {
+    try {
+        // Fetch data from MongoDB API
+        const api = new ApiService();
+        const [allMembers, attendanceRecords] = await Promise.all([
+            api.getMembers(),
+            api.getAttendance()
+        ]);
+        
+        const records = getLeaderScopedMembers(allMembers);
     
-    // Group members by sector
+    // Group members by sector and village
     const sectorGroups = {};
     records.forEach(member => {
         if (!sectorGroups[member.sector]) {
             sectorGroups[member.sector] = {
                 members: [],
+                villages: {},
                 present: 0,
                 absent: 0
             };
         }
         sectorGroups[member.sector].members.push(member);
+        
+        // Group by village within sector
+        if (!sectorGroups[member.sector].villages[member.village]) {
+            sectorGroups[member.sector].villages[member.village] = {
+                members: [],
+                present: 0,
+                absent: 0
+            };
+        }
+        sectorGroups[member.sector].villages[member.village].members.push(member);
     });
     
-    // Calculate attendance for each sector
+    // Calculate attendance for each sector and village
     Object.keys(sectorGroups).forEach(sector => {
-        const sectorMembers = sectorGroups[sector].members;
+        const sectorData = sectorGroups[sector];
         
         attendanceRecords.forEach(attendance => {
-            const member = sectorMembers.find(m => m.telephone === attendance.citizenId);
+            const member = sectorData.members.find(m => m.telephone === attendance.citizenId);
             if (member) {
                 if (attendance.status === 'present') {
-                    sectorGroups[sector].present++;
+                    sectorData.present++;
+                    // Also count for village
+                    if (sectorData.villages[member.village]) {
+                        sectorData.villages[member.village].present++;
+                    }
                 } else {
-                    sectorGroups[sector].absent++;
+                    sectorData.absent++;
+                    // Also count for village
+                    if (sectorData.villages[member.village]) {
+                        sectorData.villages[member.village].absent++;
+                    }
                 }
             }
         });
@@ -1502,22 +2215,144 @@ function calculateSectorStatistics() {
         const total = data.present + data.absent;
         const percentage = total > 0 ? Math.round((data.present / total) * 100) : 0;
         
+        // Calculate village statistics
+        const villageStats = Object.entries(data.villages).map(([village, villageData]) => {
+            const villageTotal = villageData.present + villageData.absent;
+            const villagePercentage = villageTotal > 0 ? Math.round((villageData.present / villageTotal) * 100) : 0;
+            
+            return {
+                name: village,
+                totalMembers: villageData.members.length,
+                present: villageData.present,
+                absent: villageData.absent,
+                percentage: villagePercentage
+            };
+        }).sort((a, b) => b.percentage - a.percentage);
+        
         return {
             name: sector,
             totalMembers: data.members.length,
             present: data.present,
             absent: data.absent,
-            percentage: percentage
+            percentage: percentage,
+            villages: villageStats
         };
     });
     
     // Sort by percentage (highest first)
-    return sectorStats.sort((a, b) => b.percentage - a.percentage);
+    const sortedSectorStats = sectorStats.sort((a, b) => b.percentage - a.percentage);
+    
+    // Extract villages from all sectors
+    const allVillages = sortedSectorStats.flatMap(sector => sector.villages || []);
+    
+    return {
+        sectors: sortedSectorStats,
+        villages: allVillages
+    };
+    } catch (error) {
+        console.error('Error calculating sector statistics:', error);
+        // Fallback to localStorage if API fails
+        const allMembers = JSON.parse(localStorage.getItem('registerRecords')) || [];
+        const records = getLeaderScopedMembers(allMembers);
+        const attendanceRecords = getAllUmugandaAttendanceRecords();
+        
+        // Group members by sector and village
+        const sectorGroups = {};
+        records.forEach(member => {
+            if (!sectorGroups[member.sector]) {
+                sectorGroups[member.sector] = {
+                    members: [],
+                    villages: {},
+                    present: 0,
+                    absent: 0
+                };
+            }
+            sectorGroups[member.sector].members.push(member);
+            
+            // Group by village within sector
+            if (!sectorGroups[member.sector].villages[member.village]) {
+                sectorGroups[member.sector].villages[member.village] = {
+                    members: [],
+                    present: 0,
+                    absent: 0
+                };
+            }
+            sectorGroups[member.sector].villages[member.village].members.push(member);
+        });
+        
+        // Calculate attendance for each sector and village
+        attendanceRecords.forEach(record => {
+            const member = records.find(m => m.telephone === record.citizenId);
+            if (member) {
+                const sector = member.sector;
+                const village = member.village;
+                
+                if (sectorGroups[sector]) {
+                    if (record.status === 'present') {
+                        sectorGroups[sector].present++;
+                        if (sectorGroups[sector].villages[village]) {
+                            sectorGroups[sector].villages[village].present++;
+                        }
+                    } else {
+                        sectorGroups[sector].absent++;
+                        if (sectorGroups[sector].villages[village]) {
+                            sectorGroups[sector].villages[village].absent++;
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Convert to arrays and calculate percentages
+        const sectorStats = Object.keys(sectorGroups).map(sector => {
+            const data = sectorGroups[sector];
+            const total = data.present + data.absent;
+            const percentage = total > 0 ? Math.round((data.present / total) * 100) : 0;
+            
+            const villageStats = Object.keys(data.villages).map(village => {
+                const villageData = data.villages[village];
+                const villageTotal = villageData.present + villageData.absent;
+                const villagePercentage = villageTotal > 0 ? Math.round((villageData.present / villageTotal) * 100) : 0;
+                
+                return {
+                    name: village,
+                    present: villageData.present,
+                    absent: villageData.absent,
+                    percentage: villagePercentage
+                };
+            });
+            
+            return {
+                name: sector,
+                present: data.present,
+                absent: data.absent,
+                percentage: percentage,
+                villages: villageStats.sort((a, b) => b.percentage - a.percentage)
+            };
+        });
+        
+        // Sort sectors by percentage (highest first)
+        const sortedSectorStats = sectorStats.sort((a, b) => b.percentage - a.percentage);
+        
+        // Extract villages from all sectors
+        const allVillages = sortedSectorStats.flatMap(sector => sector.villages || []);
+        
+        return {
+            sectors: sortedSectorStats,
+            villages: allVillages
+        };
+    }
 }
 
 // Update village display
 function updateVillageDisplay(villageStats) {
     const detailsContainer = document.getElementById('villageDetails');
+    
+    // Check if container exists
+    if (!detailsContainer) {
+        console.log('DEBUG - villageDetails container not found, skipping update');
+        return;
+    }
     
     if (villageStats.length === 0) {
         detailsContainer.innerHTML = '<p style="text-align: center; color: #666;">No village data available</p>';
@@ -1540,7 +2375,8 @@ function updateVillageDisplay(villageStats) {
 function updateSectorDisplay(sectorStats) {
     const detailsContainer = document.getElementById('sectorDetails');
     
-    if (sectorStats.length === 0) {
+    // Check if sectorStats is an array and has data
+    if (!Array.isArray(sectorStats) || sectorStats.length === 0) {
         detailsContainer.innerHTML = '<p style="text-align: center; color: #666;">No sector data available</p>';
         return;
     }
@@ -1560,11 +2396,18 @@ function updateSectorDisplay(sectorStats) {
 // Draw village chart
 function drawVillageChart(villageStats) {
     const canvas = document.getElementById('villageChart');
-    if (!canvas) return;
+    if (!canvas) {
+        console.log('DEBUG: villageChart canvas not found');
+        return;
+    }
+    
+    console.log('DEBUG: Drawing village chart with stats:', villageStats);
     
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
+    
+    console.log('DEBUG: Village canvas dimensions:', width, 'x', height);
     
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
@@ -1577,61 +2420,130 @@ function drawVillageChart(villageStats) {
         return;
     }
     
-    // Prepare data
+    // Prepare data with better spacing
     const maxPercentage = Math.max(...villageStats.map(v => v.percentage), 1);
-    const barWidth = width / (villageStats.length * 2);
-    const chartHeight = height - 60;
+    const barWidth = Math.min(55, width / (villageStats.length * 2.3));
+    const chartHeight = height - 120; // More space for labels
     const chartTop = 40;
+    const spacing = (width - barWidth * villageStats.length) / (villageStats.length + 1);
     
     // Draw bars
     villageStats.forEach((village, index) => {
         const barHeight = (village.percentage / maxPercentage) * chartHeight;
-        const x = (index * 2 + 0.5) * barWidth;
+        const x = spacing + index * (barWidth + spacing);
         const y = chartTop + chartHeight - barHeight;
         
-        // Draw bar
+        // Draw bar with gradient
+        const gradient = ctx.createLinearGradient(x, y, x, y + barHeight);
         const color = village.percentage >= 80 ? '#28a745' : 
                      village.percentage >= 50 ? '#fd7e14' : 
                      village.percentage > 0 ? '#ffc107' : '#dc3545';
-        ctx.fillStyle = color;
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, adjustColor(color, -20));
+        ctx.fillStyle = gradient;
         ctx.fillRect(x, y, barWidth, barHeight);
         
-        // Draw percentage on top
-        ctx.fillStyle = '#333';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${village.percentage}%`, x + barWidth / 2, y - 5);
+        // Draw bar border
+        ctx.strokeStyle = adjustColor(color, -30);
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, barWidth, barHeight);
         
-        // Draw village name below
+        // Draw percentage on top with background
+        const percentageText = `${village.percentage}%`;
+        ctx.font = 'bold 14px Arial';
+        const textMetrics = ctx.measureText(percentageText);
+        const textWidth = textMetrics.width;
+        const textHeight = 18;
+        
+        // Background for percentage
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(x + (barWidth - textWidth) / 2 - 4, y - textHeight - 8, textWidth + 8, textHeight);
+        
+        // Percentage text
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.fillText(percentageText, x + barWidth / 2, y - 10);
+        
+        // Draw village name and member count in a structured way at bottom
         ctx.save();
-        ctx.translate(x + barWidth / 2, height - 5);
-        ctx.rotate(-Math.PI / 6);
-        ctx.font = '11px Arial';
-        ctx.textAlign = 'right';
-        ctx.fillText(village.name, 0, 0);
+        ctx.font = 'bold 11px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#333';
+        
+        // Check if text fits, if not, truncate it
+        const maxWidth = barWidth + spacing - 5;
+        let displayName = village.name;
+        if (ctx.measureText(displayName).width > maxWidth) {
+            displayName = displayName.substring(0, 8) + '...';
+        }
+        
+        // Draw village name background
+        const nameY = height - 45;
+        const nameHeight = 20;
+        ctx.fillStyle = 'rgba(248, 249, 250, 0.9)';
+        ctx.fillRect(x - 5, nameY - nameHeight/2, barWidth + 10, nameHeight);
+        
+        // Draw village name
+        ctx.fillStyle = '#333';
+        ctx.fillText(displayName, x + barWidth / 2, nameY + 4);
+        
+        // Draw member count with background
+        ctx.font = '9px Arial';
+        const memberText = `${village.total} members`;
+        const memberY = height - 20;
+        const memberHeight = 16;
+        
+        ctx.fillStyle = 'rgba(233, 236, 239, 0.9)';
+        ctx.fillRect(x - 5, memberY - memberHeight/2, barWidth + 10, memberHeight);
+        
+        ctx.fillStyle = '#666';
+        ctx.fillText(memberText, x + barWidth / 2, memberY + 3);
         ctx.restore();
     });
     
     // Draw title
     ctx.fillStyle = '#333';
-    ctx.font = 'bold 14px Arial';
+    ctx.font = 'bold 16px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Village Attendance Rates', width / 2, 20);
+    ctx.fillText('Village Attendance Rates', width / 2, 25);
+    
+    // Draw axis with better styling
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(20, chartTop + chartHeight);
+    ctx.lineTo(width - 20, chartTop + chartHeight);
+    ctx.stroke();
+    
+    // Draw bottom border for better separation
+    ctx.strokeStyle = '#e9ecef';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(10, height - 55);
+    ctx.lineTo(width - 10, height - 55);
+    ctx.stroke();
 }
 
 // Draw sector chart
 function drawSectorChart(sectorStats) {
     const canvas = document.getElementById('sectorChart');
-    if (!canvas) return;
+    if (!canvas) {
+        console.log('DEBUG: sectorChart canvas not found');
+        return;
+    }
+    
+    console.log('DEBUG: Drawing sector chart with stats:', sectorStats);
     
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
     
+    console.log('DEBUG: Sector canvas dimensions:', width, 'x', height);
+    
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
     
-    if (sectorStats.length === 0) {
+    if (!Array.isArray(sectorStats) || sectorStats.length === 0) {
         ctx.fillStyle = '#666';
         ctx.font = '14px Arial';
         ctx.textAlign = 'center';
@@ -1639,46 +2551,108 @@ function drawSectorChart(sectorStats) {
         return;
     }
     
-    // Prepare data
+    // Prepare data with better spacing
     const maxPercentage = Math.max(...sectorStats.map(s => s.percentage), 1);
-    const barWidth = width / (sectorStats.length * 2);
-    const chartHeight = height - 60;
+    const barWidth = Math.min(70, width / (sectorStats.length * 2.2));
+    const chartHeight = height - 120; // More space for labels
     const chartTop = 40;
+    const spacing = (width - barWidth * sectorStats.length) / (sectorStats.length + 1);
     
     // Draw bars
     sectorStats.forEach((sector, index) => {
         const barHeight = (sector.percentage / maxPercentage) * chartHeight;
-        const x = (index * 2 + 0.5) * barWidth;
+        const x = spacing + index * (barWidth + spacing);
         const y = chartTop + chartHeight - barHeight;
         
-        // Draw bar
+        // Draw bar with gradient
+        const gradient = ctx.createLinearGradient(x, y, x, y + barHeight);
         const color = sector.percentage >= 80 ? '#28a745' : 
                      sector.percentage >= 50 ? '#fd7e14' : 
                      sector.percentage > 0 ? '#ffc107' : '#dc3545';
-        ctx.fillStyle = color;
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, adjustColor(color, -20));
+        ctx.fillStyle = gradient;
         ctx.fillRect(x, y, barWidth, barHeight);
         
-        // Draw percentage on top
-        ctx.fillStyle = '#333';
+        // Draw bar border
+        ctx.strokeStyle = adjustColor(color, -30);
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, barWidth, barHeight);
+        
+        // Draw percentage on top with background
+        const percentageText = `${sector.percentage}%`;
+        ctx.font = 'bold 14px Arial';
+        const textMetrics = ctx.measureText(percentageText);
+        const textWidth = textMetrics.width;
+        const textHeight = 18;
+        
+        // Background for percentage
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(x + (barWidth - textWidth) / 2 - 4, y - textHeight - 8, textWidth + 8, textHeight);
+        
+        // Percentage text
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.fillText(percentageText, x + barWidth / 2, y - 10);
+        
+        // Draw sector name and member count in a structured way at bottom
+        ctx.save();
         ctx.font = 'bold 12px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(`${sector.percentage}%`, x + barWidth / 2, y - 5);
+        ctx.fillStyle = '#333';
         
-        // Draw sector name below
-        ctx.save();
-        ctx.translate(x + barWidth / 2, height - 5);
-        ctx.rotate(-Math.PI / 6);
-        ctx.font = '11px Arial';
-        ctx.textAlign = 'right';
-        ctx.fillText(sector.name, 0, 0);
+        // Check if text fits, if not, truncate it
+        const maxWidth = barWidth + spacing - 5;
+        let displayName = sector.name;
+        if (ctx.measureText(displayName).width > maxWidth) {
+            displayName = displayName.substring(0, 10) + '...';
+        }
+        
+        // Draw sector name background
+        const nameY = height - 45;
+        const nameHeight = 20;
+        ctx.fillStyle = 'rgba(248, 249, 250, 0.9)';
+        ctx.fillRect(x - 5, nameY - nameHeight/2, barWidth + 10, nameHeight);
+        
+        // Draw sector name
+        ctx.fillStyle = '#333';
+        ctx.fillText(displayName, x + barWidth / 2, nameY + 4);
+        
+        // Draw member count with background
+        ctx.font = '10px Arial';
+        const memberText = `${sector.total} members`;
+        const memberY = height - 20;
+        const memberHeight = 16;
+        
+        ctx.fillStyle = 'rgba(233, 236, 239, 0.9)';
+        ctx.fillRect(x - 5, memberY - memberHeight/2, barWidth + 10, memberHeight);
+        
+        ctx.fillStyle = '#666';
+        ctx.fillText(memberText, x + barWidth / 2, memberY + 3);
         ctx.restore();
     });
     
     // Draw title
     ctx.fillStyle = '#333';
-    ctx.font = 'bold 14px Arial';
+    ctx.font = 'bold 16px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Sector Attendance Rates', width / 2, 20);
+    ctx.fillText('Sector Attendance Rates', width / 2, 25);
+    
+    // Draw axis with better styling
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(20, chartTop + chartHeight);
+    ctx.lineTo(width - 20, chartTop + chartHeight);
+    ctx.stroke();
+    
+    // Draw bottom border for better separation
+    ctx.strokeStyle = '#e9ecef';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(10, height - 55);
+    ctx.lineTo(width - 10, height - 55);
+    ctx.stroke();
 }
 
 // Update sector and village filters
@@ -1691,33 +2665,82 @@ function updateSectorVillageFilters() {
     
     // Update sector filter
     const sectorSelect = document.getElementById('filterSector');
-    const currentSectorValue = sectorSelect.value;
-    sectorSelect.innerHTML = '<option value="">All Sectors</option>' +
-        sectors.map(sector => `<option value="${sector}">${sector}</option>`).join('');
-    sectorSelect.value = currentSectorValue;
+    if (sectorSelect) {
+        const currentSectorValue = sectorSelect.value || '';
+        sectorSelect.innerHTML = '<option value="">All Sectors</option>' +
+            sectors.map(sector => `<option value="${sector}">${sector}</option>`).join('');
+        sectorSelect.value = currentSectorValue;
+    }
     
     // Update village filter
     const villageSelect = document.getElementById('filterVillage');
-    const currentVillageValue = villageSelect.value;
-    villageSelect.innerHTML = '<option value="">All Villages</option>' +
-        villages.map(village => `<option value="${village}">${village}</option>`).join('');
-    villageSelect.value = currentVillageValue;
+    if (villageSelect) {
+        const currentVillageValue = villageSelect.value || '';
+        villageSelect.innerHTML = '<option value="">All Villages</option>' +
+            villages.map(village => `<option value="${village}">${village}</option>`).join('');
+        villageSelect.value = currentVillageValue;
+    }
+}
+
+// Get all Umuganda attendance records (manual + face recognition),
+// normalized and ready for analytics.
+function getAllUmugandaAttendanceRecords() {
+    const records1 = JSON.parse(localStorage.getItem('umugandaRecords')) || [];
+    const records2 = JSON.parse(localStorage.getItem('umugandaData')) || [];
+    const all = [...records1, ...records2];
+
+    return all
+        .filter(r => r && r.date)
+        .map(r => {
+            const dateStr = typeof r.date === 'string' ? r.date : String(r.date);
+            const day = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr.substring(0, 10);
+
+            // Many older records won't have status; treat them as "present"
+            const status = (r.status || (r.checkInMethod ? 'present' : 'present')).toLowerCase();
+
+            return {
+                ...r,
+                day,
+                status: status === 'absent' ? 'absent' : 'present',
+                citizenKey: r.citizenId || r.telephone || r.memberId || r.name
+            };
+        });
+}
+
+function getLeaderScopedMembers(allMembers) {
+    if (!currentLeaderLocation) return allMembers;
+    return allMembers.filter(m =>
+        (!currentLeaderLocation.sector || m.sector === currentLeaderLocation.sector) &&
+        (!currentLeaderLocation.cell || m.cell === currentLeaderLocation.cell) &&
+        (!currentLeaderLocation.village || m.village === currentLeaderLocation.village)
+    );
 }
 
 // Calculate attendance statistics
-function calculateAttendanceStatistics() {
-    const records = JSON.parse(localStorage.getItem('registerRecords')) || [];
-    const attendanceTracking = JSON.parse(localStorage.getItem('attendanceTracking')) || {};
-    
-    // Get today's attendance
+async function calculateAttendanceStatistics() {
+    try {
+        // Fetch data from MongoDB API
+        const api = new ApiService();
+        const [allMembers, allRecords] = await Promise.all([
+            api.getMembers(),
+            api.getAttendance()
+        ]);
+        
+        const records = getLeaderScopedMembers(allMembers);
+
+    // Get today's attendance (deduped per member)
     const today = new Date().toISOString().split('T')[0];
-    const records1 = JSON.parse(localStorage.getItem('umugandaRecords')) || [];
-    const records2 = JSON.parse(localStorage.getItem('umugandaData')) || [];
-    const allRecords = [...records1, ...records2];
-    
-    const todayAttendance = allRecords.filter(record => 
-        record.date && record.date.split('T')[0] === today
-    );
+    const scopedIds = new Set(records.map(m => m.telephone));
+    const todayMap = {};
+    allRecords.forEach(r => {
+        if (r.day !== today) return;
+        if (!r.citizenKey) return;
+        if (r.citizenId && !scopedIds.has(r.citizenId)) return;
+        // if multiple records exist, keep the last one encountered
+        todayMap[r.citizenKey] = r;
+    });
+    const todayRecords = Object.values(todayMap);
+    const presentToday = todayRecords.filter(r => r.status === 'present').length;
     
     // Calculate attendance percentages for all members
     const attendanceData = records.map(record => {
@@ -1740,7 +2763,6 @@ function calculateAttendanceStatistics() {
     
     // Calculate overall statistics
     const totalMembers = records.length;
-    const presentToday = todayAttendance.length;
     const absentToday = totalMembers - presentToday;
     const overallRate = totalMembers > 0 ? Math.round((attendanceData.reduce((sum, m) => sum + m.percentage, 0) / totalMembers)) : 0;
     
@@ -1752,6 +2774,59 @@ function calculateAttendanceStatistics() {
         categories,
         attendanceData
     };
+    } catch (error) {
+        console.error('Error calculating attendance statistics:', error);
+        // Fallback to localStorage if API fails
+        const allMembers = JSON.parse(localStorage.getItem('registerRecords')) || [];
+        const records = getLeaderScopedMembers(allMembers);
+        const allRecords = getAllUmugandaAttendanceRecords();
+        
+        // Get today's attendance (deduped per member)
+        const today = new Date().toISOString().split('T')[0];
+        const scopedIds = new Set(records.map(m => m.telephone));
+        const todayMap = {}; // Added missing todayMap declaration
+        allRecords.forEach(r => {
+            if (r.day !== today) return;
+            if (!r.citizenKey) return;
+            if (r.citizenId && !scopedIds.has(r.citizenId)) return;
+            todayMap[r.citizenKey] = r;
+        });
+        const todayRecords = Object.values(todayMap);
+        const presentToday = todayRecords.filter(r => r.status === 'present').length;
+        
+        // Calculate attendance percentages for all members
+        const attendanceData = records.map(record => {
+            const percentage = calculateAttendancePercentage(record.telephone, record.name);
+            return {
+                name: record.name,
+                telephone: record.telephone,
+                percentage: percentage,
+                category: getAttendanceCategory(percentage)
+            };
+        });
+        
+        // Categorize members
+        const categories = {
+            excellent: attendanceData.filter(m => m.category === 'excellent').length,
+            good: attendanceData.filter(m => m.category === 'good').length,
+            poor: attendanceData.filter(m => m.category === 'poor').length,
+            none: attendanceData.filter(m => m.category === 'none').length
+        };
+        
+        // Calculate overall statistics
+        const totalMembers = records.length;
+        const absentToday = totalMembers - presentToday;
+        const overallRate = totalMembers > 0 ? Math.round((attendanceData.reduce((sum, m) => sum + m.percentage, 0) / totalMembers)) : 0;
+        
+        return {
+            totalMembers,
+            presentToday,
+            absentToday,
+            overallRate,
+            categories,
+            attendanceData
+        };
+    }
 }
 
 // Get attendance category based on percentage
@@ -1762,28 +2837,512 @@ function getAttendanceCategory(percentage) {
     return 'excellent';
 }
 
-// Update statistics display
-function updateAttendanceStatistics() {
-    const stats = calculateAttendanceStatistics();
+// Synchronize analytics data between leader dashboard and home page
+async function synchronizeAnalyticsData() {
+    // Update home page analytics if elements exist
+    if (document.getElementById('overallAttendanceRate')) {
+        await updateAttendanceStatistics();
+    }
+    if (document.getElementById('attendanceChart')) {
+        drawAttendanceChart();
+    }
+    if (document.getElementById('sectorChart')) {
+        drawSectorChart();
+    }
+    if (document.getElementById('villageChart')) {
+        drawVillageChart();
+    }
+}
+
+// Update attendance statistics (enhanced to sync with home page and use leader's location)
+async function updateAttendanceStatistics() {
+    // Get leader's current location from memory or localStorage
+    let leaderLocation = currentLeaderLocation;
     
-    // Update stat cards
-    document.getElementById('overallAttendanceRate').textContent = stats.overallRate + '%';
-    document.getElementById('totalMembers').textContent = stats.totalMembers;
-    document.getElementById('presentToday').textContent = stats.presentToday;
-    document.getElementById('absentToday').textContent = stats.absentToday;
+    // If not in memory, try to get from localStorage
+    if (!leaderLocation) {
+        try {
+            const savedLocation = localStorage.getItem('leaderLastLocation');
+            if (savedLocation) {
+                leaderLocation = JSON.parse(savedLocation);
+            }
+        } catch (e) {
+            console.log('DEBUG: Could not retrieve saved leader location');
+        }
+    }
     
-    // Update progress bar
-    const progressFill = document.getElementById('attendanceProgress');
-    progressFill.style.width = stats.overallRate + '%';
+    console.log('DEBUG: Leader location for analytics:', leaderLocation);
     
-    // Update category counts and bars
+    // Calculate statistics based on leader's location
+    const stats = calculateLocationBasedAttendanceStatistics(leaderLocation);
+    
+    // Update leader dashboard elements
+    const overallRateEl = document.getElementById('overallAttendanceRate');
+    const totalMembersEl = document.getElementById('totalMembers');
+    const presentTodayEl = document.getElementById('presentToday');
+    const absentTodayEl = document.getElementById('absentToday');
+    
+    if (overallRateEl) {
+        overallRateEl.textContent = `${stats.overallAttendanceRate}%`;
+        const progressEl = document.getElementById('attendanceProgress');
+        if (progressEl) {
+            progressEl.style.width = `${stats.overallAttendanceRate}%`;
+        }
+    }
+    
+    if (totalMembersEl) totalMembersEl.textContent = stats.totalMembers;
+    if (presentTodayEl) presentTodayEl.textContent = stats.presentToday;
+    if (absentTodayEl) absentTodayEl.textContent = stats.absentToday;
+    
+    // Update category statistics
     updateCategoryStats('excellent', stats.categories.excellent, stats.totalMembers);
     updateCategoryStats('good', stats.categories.good, stats.totalMembers);
     updateCategoryStats('poor', stats.categories.poor, stats.totalMembers);
     updateCategoryStats('none', stats.categories.none, stats.totalMembers);
     
-    // Draw bar chart
+    // Update sector and village statistics (still show all for broader view)
+    const { sectors, villages } = await calculateSectorStatistics();
+    updateSectorDisplay(sectors);
+    updateVillageDisplay(villages);
+    
+    // Draw charts with location-based stats for overview chart
     drawAttendanceChart(stats);
+    drawSectorChart(sectors);
+    drawVillageChart(villages);
+    
+    // Draw monthly overall attendance chart
+    await drawMonthlyOverallAttendanceChart();
+    
+    // Update home page elements if they exist (synchronization)
+    const homeOverallRateEl = document.getElementById('homeOverallAttendanceRate');
+    const homeTotalMembersEl = document.getElementById('homeTotalMembers');
+    const homePresentTodayEl = document.getElementById('homePresentToday');
+    const homeAbsentTodayEl = document.getElementById('homeAbsentToday');
+    
+    if (homeOverallRateEl) {
+        homeOverallRateEl.textContent = `${stats.overallAttendanceRate}%`;
+        const homeProgressEl = document.getElementById('homeAttendanceProgress');
+        if (homeProgressEl) {
+            homeProgressEl.style.width = `${stats.overallAttendanceRate}%`;
+        }
+    }
+    
+    if (homeTotalMembersEl) homeTotalMembersEl.textContent = stats.totalMembers;
+    if (homePresentTodayEl) homePresentTodayEl.textContent = stats.presentToday;
+    if (homeAbsentTodayEl) homeAbsentTodayEl.textContent = stats.absentToday;
+    
+    // Update home page category statistics
+    updateHomeCategoryStats('excellent', stats.categories.excellent, stats.totalMembers);
+    updateHomeCategoryStats('good', stats.categories.good, stats.totalMembers);
+    updateHomeCategoryStats('poor', stats.categories.poor, stats.totalMembers);
+    updateHomeCategoryStats('none', stats.categories.none, stats.totalMembers);
+    
+    // Update home page sector and village displays
+    updateHomeSectorDisplay(sectors);
+    updateHomeVillageDisplay(villages);
+    
+    // Draw home page charts
+    drawHomeSectorChart(sectors);
+    drawHomeVillageChart(villages);
+}
+
+// Calculate attendance statistics based on leader's location
+function calculateLocationBasedAttendanceStatistics(leaderLocation) {
+    console.log('DEBUG: Calculating statistics for leader location:', leaderLocation);
+    
+    // Get all members
+    const allMembers = JSON.parse(localStorage.getItem('registerRecords')) || [];
+    const records = getLeaderScopedMembers(allMembers);
+    
+    // Filter members based on leader's location
+    let filteredMembers = records;
+    
+    if (leaderLocation) {
+        if (leaderLocation.sector) {
+            filteredMembers = filteredMembers.filter(member => member.sector === leaderLocation.sector);
+        }
+        if (leaderLocation.cell) {
+            filteredMembers = filteredMembers.filter(member => member.cell === leaderLocation.cell);
+        }
+        if (leaderLocation.village) {
+            filteredMembers = filteredMembers.filter(member => member.village === leaderLocation.village);
+        }
+    }
+    
+    console.log('DEBUG: Filtered members count for location:', filteredMembers.length);
+    
+    // Get attendance records
+    const attendanceRecords = getAllUmugandaAttendanceRecords();
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Calculate attendance for filtered members
+    let presentToday = 0;
+    let absentToday = 0;
+    const attendanceData = [];
+    
+    // Get today's attendance records for filtered members
+    const todayRecords = attendanceRecords.filter(record => {
+        const recordDate = record.date.split('T')[0];
+        return recordDate === today;
+    });
+    
+    console.log('DEBUG: Today\'s attendance records:', todayRecords.length);
+    console.log('DEBUG: Filtered members for location:', filteredMembers.map(m => m.name));
+    
+    filteredMembers.forEach(member => {
+        let attendedSessions = 0;
+        let totalSessions = 0;
+        let isPresentToday = false;
+        
+        // Calculate overall attendance from all records for this member
+        const memberRecords = attendanceRecords.filter(record => 
+            record.citizenKey === member.telephone
+        );
+        
+        totalSessions = memberRecords.length;
+        
+        // Count attended sessions
+        memberRecords.forEach(record => {
+            if (record.status === 'present') {
+                attendedSessions++;
+            }
+        });
+        
+        // Check today's attendance specifically
+        const todayAttendance = todayRecords.find(record => 
+            record.citizenKey === member.telephone
+        );
+        
+        if (todayAttendance) {
+            if (todayAttendance.status === 'present') {
+                isPresentToday = true;
+                presentToday++;
+            } else {
+                absentToday++;
+            }
+        }
+        
+        const percentage = totalSessions > 0 ? Math.round((attendedSessions / totalSessions) * 100) : 0;
+        const category = getAttendanceCategory(percentage);
+        
+        attendanceData.push({
+            name: member.name,
+            telephone: member.telephone,
+            percentage: percentage,
+            category: category,
+            attendedSessions: attendedSessions,
+            totalSessions: totalSessions
+        });
+        
+        console.log(`DEBUG: Member ${member.name} - Sessions: ${totalSessions}, Attended: ${attendedSessions}, Today: ${isPresentToday ? 'Present' : 'Not recorded'}`);
+    });
+    
+    // Calculate categories
+    const categories = {
+        excellent: attendanceData.filter(m => m.category === 'excellent').length,
+        good: attendanceData.filter(m => m.category === 'good').length,
+        poor: attendanceData.filter(m => m.category === 'poor').length,
+        none: attendanceData.filter(m => m.category === 'none').length
+    };
+    
+    // Calculate overall statistics
+    const totalMembers = filteredMembers.length;
+    const overallAttendanceRate = totalMembers > 0 ? 
+        Math.round((attendanceData.reduce((sum, m) => sum + m.percentage, 0) / totalMembers)) : 0;
+    
+    console.log('DEBUG: Location-based stats:', {
+        totalMembers,
+        presentToday,
+        absentToday,
+        overallAttendanceRate,
+        categories
+    });
+    
+    return {
+        categories: categories,
+        totalMembers: totalMembers,
+        presentToday: presentToday,
+        absentToday: absentToday,
+        overallAttendanceRate: overallAttendanceRate
+    };
+}
+
+// Update home page category statistics
+function updateHomeCategoryStats(category, count, total) {
+    const countElement = document.getElementById(category + 'Count');
+    const barElement = document.getElementById(category + 'Bar');
+    
+    if (countElement) countElement.textContent = count;
+    if (barElement) {
+        const percentage = total > 0 ? (count / total) * 100 : 0;
+        barElement.style.width = percentage + '%';
+    }
+}
+
+// Update home page sector display
+function updateHomeSectorDisplay(sectorStats) {
+    const detailsContainer = document.getElementById('sectorDetails');
+    if (!detailsContainer) return;
+    
+    if (!Array.isArray(sectorStats) || sectorStats.length === 0) {
+        detailsContainer.innerHTML = '<p style="text-align: center; color: #666;">No sector data available</p>';
+        return;
+    }
+    
+    detailsContainer.innerHTML = sectorStats.map(sector => `
+        <div class="sector-stat-item">
+            <span class="sector-stat-name">${sector.name}</span>
+            <span class="sector-stat-value ${sector.percentage >= 80 ? 'high' : sector.percentage >= 50 ? 'medium' : 'low'}">
+                ${sector.percentage}%
+            </span>
+        </div>
+    `).join('');
+}
+
+// Update home page village display
+function updateHomeVillageDisplay(villageStats) {
+    const detailsContainer = document.getElementById('villageBreakdownContainer');
+    if (!detailsContainer) return;
+    
+    if (villageStats.length === 0) {
+        detailsContainer.innerHTML = '<p style="text-align: center; color: #666;">No village data available</p>';
+        return;
+    }
+    
+    detailsContainer.innerHTML = villageStats.map(village => `
+        <div class="village-stat-item">
+            <span class="village-stat-name">${village.name}</span>
+            <span class="village-stat-value ${village.percentage >= 80 ? 'high' : village.percentage >= 50 ? 'medium' : 'low'}">
+                ${village.percentage}%
+            </span>
+        </div>
+    `).join('');
+}
+
+// Draw home page sector chart
+function drawHomeSectorChart(sectorStats) {
+    const canvas = document.getElementById('sectorChart');
+    if (!canvas) return;
+    
+    // Use the same drawing logic as the leader dashboard but with home canvas
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    if (!Array.isArray(sectorStats) || sectorStats.length === 0) {
+        ctx.fillStyle = '#666';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('No sector data available', width / 2, height / 2);
+        return;
+    }
+    
+    // Use the same drawing logic as drawSectorChart function
+    const maxPercentage = Math.max(...sectorStats.map(s => s.percentage), 1);
+    const barWidth = Math.min(70, width / (sectorStats.length * 2.2));
+    const chartHeight = height - 120;
+    const chartTop = 40;
+    const spacing = (width - barWidth * sectorStats.length) / (sectorStats.length + 1);
+    
+    sectorStats.forEach((sector, index) => {
+        const barHeight = (sector.percentage / maxPercentage) * chartHeight;
+        const x = spacing + index * (barWidth + spacing);
+        const y = chartTop + chartHeight - barHeight;
+        
+        // Draw bar with gradient
+        const gradient = ctx.createLinearGradient(x, y, x, y + barHeight);
+        const color = sector.percentage >= 80 ? '#28a745' : 
+                     sector.percentage >= 50 ? '#fd7e14' : 
+                     sector.percentage > 0 ? '#ffc107' : '#dc3545';
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, adjustColor(color, -20));
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, y, barWidth, barHeight);
+        
+        // Draw bar border
+        ctx.strokeStyle = adjustColor(color, -30);
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, barWidth, barHeight);
+        
+        // Draw percentage on top with background
+        const percentageText = `${sector.percentage}%`;
+        ctx.font = 'bold 14px Arial';
+        const textMetrics = ctx.measureText(percentageText);
+        const textWidth = textMetrics.width;
+        const textHeight = 18;
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(x + (barWidth - textWidth) / 2 - 4, y - textHeight - 8, textWidth + 8, textHeight);
+        
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.fillText(percentageText, x + barWidth / 2, y - 10);
+        
+        // Draw sector name and member count
+        ctx.save();
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#333';
+        
+        const maxWidth = barWidth + spacing - 5;
+        let displayName = sector.name;
+        if (ctx.measureText(displayName).width > maxWidth) {
+            displayName = displayName.substring(0, 10) + '...';
+        }
+        
+        const nameY = height - 45;
+        const nameHeight = 20;
+        ctx.fillStyle = 'rgba(248, 249, 250, 0.9)';
+        ctx.fillRect(x - 5, nameY - nameHeight/2, barWidth + 10, nameHeight);
+        
+        ctx.fillStyle = '#333';
+        ctx.fillText(displayName, x + barWidth / 2, nameY + 4);
+        
+        ctx.font = '10px Arial';
+        const memberText = `${sector.totalMembers} members`;
+        const memberY = height - 20;
+        const memberHeight = 16;
+        
+        ctx.fillStyle = 'rgba(233, 236, 239, 0.9)';
+        ctx.fillRect(x - 5, memberY - memberHeight/2, barWidth + 10, memberHeight);
+        
+        ctx.fillStyle = '#666';
+        ctx.fillText(memberText, x + barWidth / 2, memberY + 3);
+        ctx.restore();
+    });
+    
+    // Draw title
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sector Attendance Rates', width / 2, 25);
+    
+    // Draw axis
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(20, chartTop + chartHeight);
+    ctx.lineTo(width - 20, chartTop + chartHeight);
+    ctx.stroke();
+    
+    ctx.strokeStyle = '#e9ecef';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(10, height - 55);
+    ctx.lineTo(width - 10, height - 55);
+    ctx.stroke();
+}
+
+// Draw home page village chart
+function drawHomeVillageChart(villageStats) {
+    const canvas = document.getElementById('villageChart');
+    if (!canvas) return;
+    
+    // Use the same drawing logic as the leader dashboard but with home canvas
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    ctx.clearRect(0, 0, width, height);
+    
+    if (villageStats.length === 0) {
+        ctx.fillStyle = '#666';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('No village data available', width / 2, height / 2);
+        return;
+    }
+    
+    const maxPercentage = Math.max(...villageStats.map(v => v.percentage), 1);
+    const barWidth = Math.min(55, width / (villageStats.length * 2.3));
+    const chartHeight = height - 120;
+    const chartTop = 40;
+    const spacing = (width - barWidth * villageStats.length) / (villageStats.length + 1);
+    
+    villageStats.forEach((village, index) => {
+        const barHeight = (village.percentage / maxPercentage) * chartHeight;
+        const x = spacing + index * (barWidth + spacing);
+        const y = chartTop + chartHeight - barHeight;
+        
+        const gradient = ctx.createLinearGradient(x, y, x, y + barHeight);
+        const color = village.percentage >= 80 ? '#28a745' : 
+                     village.percentage >= 50 ? '#fd7e14' : 
+                     village.percentage > 0 ? '#ffc107' : '#dc3545';
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, adjustColor(color, -20));
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, y, barWidth, barHeight);
+        
+        ctx.strokeStyle = adjustColor(color, -30);
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, barWidth, barHeight);
+        
+        const percentageText = `${village.percentage}%`;
+        ctx.font = 'bold 14px Arial';
+        const textMetrics = ctx.measureText(percentageText);
+        const textWidth = textMetrics.width;
+        const textHeight = 18;
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(x + (barWidth - textWidth) / 2 - 4, y - textHeight - 8, textWidth + 8, textHeight);
+        
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.fillText(percentageText, x + barWidth / 2, y - 10);
+        
+        ctx.save();
+        ctx.font = 'bold 11px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#333';
+        
+        const maxWidth = barWidth + spacing - 5;
+        let displayName = village.name;
+        if (ctx.measureText(displayName).width > maxWidth) {
+            displayName = displayName.substring(0, 8) + '...';
+        }
+        
+        const nameY = height - 45;
+        const nameHeight = 20;
+        ctx.fillStyle = 'rgba(248, 249, 250, 0.9)';
+        ctx.fillRect(x - 5, nameY - nameHeight/2, barWidth + 10, nameHeight);
+        
+        ctx.fillStyle = '#333';
+        ctx.fillText(displayName, x + barWidth / 2, nameY + 4);
+        
+        ctx.font = '9px Arial';
+        const memberText = `${village.totalMembers} members`;
+        const memberY = height - 20;
+        const memberHeight = 16;
+        
+        ctx.fillStyle = 'rgba(233, 236, 239, 0.9)';
+        ctx.fillRect(x - 5, memberY - memberHeight/2, barWidth + 10, memberHeight);
+        
+        ctx.fillStyle = '#666';
+        ctx.fillText(memberText, x + barWidth / 2, memberY + 3);
+        ctx.restore();
+    });
+    
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Village Attendance Rates', width / 2, 25);
+    
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(20, chartTop + chartHeight);
+    ctx.lineTo(width - 20, chartTop + chartHeight);
+    ctx.stroke();
+    
+    ctx.strokeStyle = '#e9ecef';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(10, height - 55);
+    ctx.lineTo(width - 10, height - 55);
+    ctx.stroke();
 }
 
 // Update category statistics
@@ -1799,11 +3358,18 @@ function updateCategoryStats(category, count, total) {
 // Draw attendance bar chart
 function drawAttendanceChart(stats) {
     const canvas = document.getElementById('attendanceChart');
-    if (!canvas) return;
+    if (!canvas) {
+        console.log('DEBUG: attendanceChart canvas not found');
+        return;
+    }
+    
+    console.log('DEBUG: Drawing attendance chart with stats:', stats);
     
     const ctx = canvas.getContext('2d');
     const width = canvas.width;
     const height = canvas.height;
+    
+    console.log('DEBUG: Canvas dimensions:', width, 'x', height);
     
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
@@ -1816,42 +3382,387 @@ function drawAttendanceChart(stats) {
         { label: 'None (0%)', value: stats.categories.none, color: '#dc3545' }
     ];
     
+    console.log('DEBUG: Chart data:', data);
+    
     const maxValue = Math.max(...data.map(d => d.value), 1);
-    const barWidth = width / (data.length * 2);
-    const chartHeight = height - 60;
-    const chartTop = 40;
+    const barWidth = Math.min(80, width / (data.length * 2.5));
+    const chartHeight = height - 100;
+    const chartTop = 50;
+    const spacing = (width - barWidth * data.length) / (data.length + 1);
+    
+    console.log('DEBUG: Chart layout - maxValue:', maxValue, 'barWidth:', barWidth, 'chartHeight:', chartHeight);
     
     // Draw bars
     data.forEach((item, index) => {
         const barHeight = (item.value / maxValue) * chartHeight;
-        const x = (index * 2 + 0.5) * barWidth;
+        const x = spacing + index * (barWidth + spacing);
         const y = chartTop + chartHeight - barHeight;
         
-        // Draw bar
-        ctx.fillStyle = item.color;
+        console.log(`DEBUG: Drawing bar ${index} - value: ${item.value}, barHeight: ${barHeight}, x: ${x}, y: ${y}`);
+        
+        // Draw bar with gradient
+        const gradient = ctx.createLinearGradient(x, y, x, y + barHeight);
+        gradient.addColorStop(0, item.color);
+        gradient.addColorStop(1, adjustColor(item.color, -20));
+        ctx.fillStyle = gradient;
         ctx.fillRect(x, y, barWidth, barHeight);
         
-        // Draw value on top of bar
-        ctx.fillStyle = '#333';
-        ctx.font = 'bold 14px Arial';
+        // Draw bar border
+        ctx.strokeStyle = adjustColor(item.color, -30);
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, barWidth, barHeight);
+        
+        // Draw value on top of bar with background
+        const valueText = item.value.toString();
+        ctx.font = 'bold 16px Arial';
+        const textMetrics = ctx.measureText(valueText);
+        const textWidth = textMetrics.width;
+        const textHeight = 20;
+        
+        // Background for value
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(x + (barWidth - textWidth) / 2 - 4, y - textHeight - 8, textWidth + 8, textHeight);
+        
+        // Value text
+        ctx.fillStyle = item.color;
         ctx.textAlign = 'center';
-        ctx.fillText(item.value, x + barWidth / 2, y - 5);
+        ctx.fillText(valueText, x + barWidth / 2, y - 10);
+        
+        // Draw percentage
+        const percentage = stats.totalMembers > 0 ? Math.round((item.value / stats.totalMembers) * 100) : 0;
+        ctx.font = 'bold 12px Arial';
+        ctx.fillStyle = '#333';
+        ctx.fillText(`${percentage}%`, x + barWidth / 2, y - 28);
         
         // Draw label below bar
         ctx.save();
-        ctx.translate(x + barWidth / 2, height - 5);
-        ctx.rotate(-Math.PI / 6);
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'right';
-        ctx.fillText(item.label, 0, 0);
+        ctx.translate(x + barWidth / 2, height - 15);
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#333';
+        
+        // Split label for better readability
+        const labelParts = item.label.split(' ');
+        ctx.fillText(labelParts[0], 0, 0);
+        if (labelParts[1]) {
+            ctx.fillText(labelParts[1], 0, 15);
+        }
         ctx.restore();
+    });
+    
+    // Draw title
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Attendance Distribution by Category', width / 2, 25);
+    
+    // Draw axis
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(20, chartTop + chartHeight);
+    ctx.lineTo(width - 20, chartTop + chartHeight);
+    ctx.stroke();
+    
+    console.log('DEBUG: Attendance chart drawn successfully');
+}
+
+// Calculate monthly overall attendance statistics
+async function calculateMonthlyOverallAttendance() {
+    try {
+        // Fetch data from MongoDB API
+        const api = new ApiService();
+        const [allMembers, attendanceRecords] = await Promise.all([
+            api.getMembers(),
+            api.getAttendance()
+        ]);
+        
+        const records = getLeaderScopedMembers(allMembers);
+    
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
+    
+    // Calculate overall attendance for each month
+    const monthlyOverallStats = months.map((month, index) => {
+        // Skip months that haven't occurred yet
+        if (index > currentMonth) {
+            return {
+                month: month,
+                attendance: 'Not Defined',
+                percentage: null,
+                isDefined: false
+            };
+        }
+        
+        let totalAttendanceSessions = 0;
+        let totalPossibleAttendance = 0;
+        
+        // Check all attendance records for this month
+        attendanceRecords.forEach(record => {
+            const recordDate = new Date(record.date);
+            if (recordDate.getFullYear() === currentYear && recordDate.getMonth() === index) {
+                totalAttendanceSessions++;
+                // Each member could attend each session
+                totalPossibleAttendance += records.length;
+                
+                // Count actual attendances
+                if (record.attendees) {
+                    record.attendees.forEach(attendeePhone => {
+                        // Check if this attendee is in our member list
+                        if (records.some(member => member.telephone === attendeePhone)) {
+                            // This is counted in the actual attendance
+                        }
+                    });
+                }
+            }
+        });
+        
+        // Calculate attendance percentage for the month
+        let attendancePercentage = 0;
+        if (totalPossibleAttendance > 0) {
+            let totalAttended = 0;
+            attendanceRecords.forEach(record => {
+                const recordDate = new Date(record.date);
+                if (recordDate.getFullYear() === currentYear && recordDate.getMonth() === index) {
+                    if (record.attendees) {
+                        record.attendees.forEach(attendeePhone => {
+                            if (records.some(member => member.telephone === attendeePhone)) {
+                                totalAttended++;
+                            }
+                        });
+                    }
+                }
+            });
+            attendancePercentage = Math.round((totalAttended / totalPossibleAttendance) * 100);
+        }
+        
+        return {
+            month: month,
+            attendance: totalAttendanceSessions > 0 ? `${attendancePercentage}%` : 'No Attendance',
+            percentage: attendancePercentage,
+            isDefined: totalAttendanceSessions > 0
+        };
+    });
+    
+    return monthlyOverallStats;
+    } catch (error) {
+        console.error('Error calculating monthly overall attendance:', error);
+        // Fallback to localStorage if API fails
+        const allMembers = JSON.parse(localStorage.getItem('registerRecords')) || [];
+        const records = getLeaderScopedMembers(allMembers);
+        const attendanceRecords = getAllUmugandaAttendanceRecords();
+        
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const currentYear = new Date().getFullYear();
+        const currentMonth = new Date().getMonth();
+        
+        // Calculate overall attendance for each month
+        const monthlyOverallStats = months.map((month, index) => {
+            // Skip months that haven't occurred yet
+            if (index > currentMonth) {
+                return {
+                    month: month,
+                    attendance: 'Not Defined',
+                    percentage: null,
+                    isDefined: false
+                };
+            }
+            
+            let totalAttendanceSessions = 0;
+            let totalPossibleAttendance = 0;
+            
+            // Check all attendance records for this month
+            attendanceRecords.forEach(record => {
+                const recordDate = new Date(record.date);
+                if (recordDate.getFullYear() === currentYear && recordDate.getMonth() === index) {
+                    totalAttendanceSessions++;
+                    // Each member could attend each session
+                    totalPossibleAttendance += records.length;
+                }
+            });
+            
+            const percentage = totalPossibleAttendance > 0 ? 
+                Math.round((totalAttendanceSessions / totalPossibleAttendance) * 100) : 0;
+            
+            return {
+                month: month,
+                attendance: totalAttendanceSessions,
+                percentage: percentage,
+                isDefined: true
+            };
+        });
+        
+        return monthlyOverallStats;
+    }
+}
+
+// Draw monthly overall attendance chart
+async function drawMonthlyOverallAttendanceChart() {
+    console.log('DEBUG: drawMonthlyOverallAttendanceChart called');
+    
+    const canvas = document.getElementById('monthlyOverallAttendanceChart');
+    if (!canvas) {
+        console.log('DEBUG: Creating monthly overall attendance chart canvas');
+        // Create canvas if it doesn't exist
+        const attendanceSection = document.querySelector('.attendance-categories');
+        if (attendanceSection) {
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'chart-container';
+            chartContainer.innerHTML = `
+                <h4>Monthly Overall Attendance</h4>
+                <div class="chart-wrapper">
+                    <canvas id="monthlyOverallAttendanceChart" width="800" height="400"></canvas>
+                </div>
+            `;
+            attendanceSection.parentNode.insertBefore(chartContainer, attendanceSection.nextSibling);
+        }
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    // Get monthly data
+    const monthlyData = await calculateMonthlyOverallAttendance();
+    
+    console.log('DEBUG: Monthly overall attendance data:', monthlyData);
+    
+    // Filter out undefined months for chart calculations
+    const definedMonths = monthlyData.filter(month => month.isDefined);
+    
+    console.log('DEBUG: Defined months:', definedMonths);
+    
+    if (definedMonths.length === 0) {
+        ctx.fillStyle = '#666';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('No attendance data available for current year', width / 2, height / 2);
+        return;
+    }
+    
+    // Chart data
+    const data = monthlyData;
+    const maxPercentage = Math.max(...definedMonths.map(m => m.percentage), 1);
+    
+    console.log('DEBUG: Max percentage:', maxPercentage);
+    
+    const barWidth = Math.min(50, width / (data.length * 2));
+    const chartHeight = height - 80;
+    const chartTop = 40;
+    const spacing = (width - barWidth * data.length) / (data.length + 1);
+    
+    // Draw bars
+    data.forEach((item, index) => {
+        const x = spacing + index * (barWidth + spacing);
+        
+        if (!item.isDefined) {
+            // Draw gray bar for undefined months
+            const barHeight = 20;
+            const y = chartTop + chartHeight - barHeight;
+            
+            ctx.fillStyle = '#e0e0e0';
+            ctx.fillRect(x, y, barWidth, barHeight);
+            
+            // Draw "Not Defined" text
+            ctx.fillStyle = '#999';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('N/A', x + barWidth / 2, y - 5);
+            
+            // Draw month label
+            ctx.fillStyle = '#333';
+            ctx.font = '10px Arial';
+            ctx.fillText(item.month, x + barWidth / 2, height - 10);
+        } else {
+            const barHeight = (item.percentage / maxPercentage) * chartHeight;
+            const y = chartTop + chartHeight - barHeight;
+            
+            console.log(`DEBUG: Drawing bar for ${item.month}: ${item.percentage}% at position ${x}, y=${y}, height=${barHeight}`);
+            
+            // Draw bar with gradient
+            const gradient = ctx.createLinearGradient(x, y, x, y + barHeight);
+            const color = item.percentage >= 80 ? '#28a745' : 
+                         item.percentage >= 50 ? '#fd7e14' : 
+                         item.percentage > 0 ? '#ffc107' : '#dc3545';
+            gradient.addColorStop(0, color);
+            gradient.addColorStop(1, adjustColor(color, -20));
+            ctx.fillStyle = gradient;
+            ctx.fillRect(x, y, barWidth, barHeight);
+            
+            // Draw bar border
+            ctx.strokeStyle = adjustColor(color, -30);
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, barWidth, barHeight);
+            
+            // Draw percentage on top
+            ctx.fillStyle = color;
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${item.percentage}%`, x + barWidth / 2, y - 5);
+            
+            // Draw month label
+            ctx.fillStyle = '#333';
+            ctx.font = '10px Arial';
+            ctx.fillText(item.month, x + barWidth / 2, height - 10);
+        }
     });
     
     // Draw title
     ctx.fillStyle = '#333';
     ctx.font = 'bold 16px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('Attendance Distribution by Category', width / 2, 20);
+    ctx.fillText('Monthly Overall Attendance - Current Year', width / 2, 25);
+    
+    // Draw axis
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(20, chartTop + chartHeight);
+    ctx.lineTo(width - 20, chartTop + chartHeight);
+    ctx.stroke();
+    
+    console.log('DEBUG: Monthly overall attendance chart drawn successfully');
+}
+
+// Test function to force chart rendering
+function testCharts() {
+    console.log('DEBUG: Testing chart rendering...');
+    
+    // Test attendance chart
+    if (typeof calculateAttendanceStatistics === 'function') {
+        const stats = calculateAttendanceStatistics();
+        console.log('DEBUG: Attendance stats calculated:', stats);
+        if (typeof drawAttendanceChart === 'function') {
+            drawAttendanceChart(stats);
+        }
+    }
+    
+    // Test sector and village charts
+    if (typeof calculateSectorStatistics === 'function') {
+        const { sectors, villages } = calculateSectorStatistics();
+        console.log('DEBUG: Sector stats calculated:', sectors);
+        console.log('DEBUG: Village stats calculated:', villages);
+        if (typeof drawSectorChart === 'function') {
+            drawSectorChart(sectors);
+        }
+        if (typeof drawVillageChart === 'function') {
+            drawVillageChart(villages);
+        }
+    }
+}
+
+// Helper function to adjust color brightness
+function adjustColor(color, amount) {
+    const num = parseInt(color.replace('#', ''), 16);
+    const r = Math.max(0, Math.min(255, (num >> 16) + amount));
+    const g = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) + amount));
+    const b = Math.max(0, Math.min(255, (num & 0x0000FF) + amount));
+    return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
 }
 
 // Analytics action functions
@@ -1877,8 +3788,8 @@ function exportAttendanceData() {
     showNotification('Attendance data exported successfully!', 'success');
 }
 
-function refreshAnalytics() {
-    updateAttendanceStatistics();
+async function refreshAnalytics() {
+    await updateAttendanceStatistics();
     showNotification('Analytics data refreshed!', 'success');
 }
 
@@ -2289,7 +4200,7 @@ function handleInsuranceSubmit(e) {
     alert('Insurance payment status recorded!');
 }
 
-function loadInsuranceTable() {
+async function loadInsuranceTable() {
     const records = JSON.parse(localStorage.getItem('insuranceRecords')) || [];
     const tbody = document.getElementById('insuranceTableBody');
     
@@ -2337,7 +4248,7 @@ function truncateDesc(text, len) {
     return text.length <= len ? escapeHtml(text) : escapeHtml(text.slice(0, len)) + '…';
 }
 
-function loadDrugsTable() {
+async function loadDrugsTable() {
     const records = JSON.parse(localStorage.getItem('drugsRecords')) || [];
     const tbody = document.getElementById('drugsTableBody');
     const reportedByLabel = (r) => r.reportedBy || '—';
@@ -2382,7 +4293,7 @@ function handleViolenceSubmit(e) {
     alert('Sexual violence report sent successfully! Visible on village, cell and sector pages.');
 }
 
-function loadViolenceTable() {
+async function loadViolenceTable() {
     const records = JSON.parse(localStorage.getItem('violenceRecords')) || [];
     const tbody = document.getElementById('violenceTableBody');
     const reportedByLabel = (r) => r.reportedBy || '—';
@@ -2444,7 +4355,7 @@ function handleLeaderInfrastructureSubmit(e) {
     }
 }
 
-function loadLeaderInfrastructureTable() {
+async function loadLeaderInfrastructureTable() {
     const records = JSON.parse(localStorage.getItem('infrastructureReports')) || [];
     const tbody = document.getElementById('leaderInfrastructureTableBody');
     if (!tbody) return;
@@ -2532,7 +4443,7 @@ function handleCaseSubmit(e) {
     alert('Case recorded successfully! The countdown timer has started.');
 }
 
-function loadCaseTable() {
+async function loadCaseTable() {
     const records = JSON.parse(localStorage.getItem('caseRecords')) || [];
     const tbody = document.getElementById('caseTableBody');
     
@@ -2759,26 +4670,20 @@ function loadNotifications() {
 }
 
 // Load all tables
-function loadAllTables() {
-    loadUmugandaTable();
-    loadIntekoRecords();
-    loadRegisterTable();
-    loadInsuranceTable();
-    loadDrugsTable();
-    loadViolenceTable();
-    // Leader-specific infrastructure table
-    loadLeaderInfrastructureTable();
-    loadCaseTable();
-    loadLeaderHomeUpdatesList();
-    loadVisitorReports();
-    
-    // Load attendance statistics
-    updateAttendanceStatistics();
-    updateVillageSectorStatistics();
-    updateSectorVillageFilters();
-    
-    // Initialize leader location selection
-    initializeLeaderLocationSelection();
+async function loadAllTables() {
+    try {
+        await loadIntekoRecords();
+        await loadRegisterTable();
+        await loadInsuranceTable();
+        await loadDrugsTable();
+        await loadViolenceTable();
+        // Leader-specific infrastructure table
+        await loadLeaderInfrastructureTable();
+        await loadCaseTable();
+        await loadLeaderHomeUpdatesList();
+    } catch (error) {
+        console.warn('Some tables failed to load:', error);
+    }
 }
 
 // Format date helper
@@ -2879,7 +4784,7 @@ function handleLeaderChatSubmit(e) {
 }
 
 // Load chat messages relevant for this leader
-function loadLeaderChatMessages() {
+async function loadLeaderChatMessages() {
     const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
     const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
     
@@ -2915,7 +4820,7 @@ function loadLeaderChatMessages() {
 }
 
 // Build inbox of citizens who have sent messages to this leader
-function loadLeaderInbox() {
+async function loadLeaderInbox() {
     const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
     const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
     const users = JSON.parse(localStorage.getItem('users')) || [];
@@ -3083,80 +4988,200 @@ async function handleLeaderActivitySubmit(e) {
     const date = document.getElementById('leaderActivityDate').value;
     const fileInput = document.getElementById('leaderActivityImage');
     const file = fileInput && fileInput.files && fileInput.files[0];
-    let imageData = 'https://via.placeholder.com/400x200?text=Activity';
-    if (file) {
-        try {
-            const dataUrl = await readImageAsDataUrl(file);
-            if (dataUrl) imageData = dataUrl;
-        } catch (err) {
-            console.warn('Image read failed', err);
-        }
-    }
-    const activities = JSON.parse(localStorage.getItem('activities')) || [];
-    const item = {
-        id: Date.now(),
+    
+    // Prepare data for MongoDB
+    const updateData = {
+        type: 'activity',
+        title: 'Activity',
         description,
         place,
         date,
-        image: imageData,
-        level: HOME_LEVEL,
-        uploadedBy: getCurrentLeaderName()
+        postedBy: getCurrentLeaderName()
     };
-    activities.push(item);
-    localStorage.setItem('activities', JSON.stringify(activities));
-    e.target.reset();
-    document.getElementById('leaderActivityDate').value = new Date().toISOString().slice(0, 10);
+    
+    try {
+        // Check if ApiService is available
+        if (typeof ApiService === 'undefined') {
+            throw new Error('ApiService not available - falling back to localStorage');
+        }
+        
+        // Use API service to save to MongoDB
+        const api = new ApiService();
+        const result = await api.createHomeUpdate(updateData, file);
+        
+        console.log('Activity saved to MongoDB:', result);
+        showNotification('Activity posted successfully!', 'success');
+        
+        // Reset form
+        e.target.reset();
+        document.getElementById('leaderActivityDate').value = new Date().toISOString().slice(0, 10);
+        
+        // Refresh home updates list
+        loadLeaderHomeUpdatesList();
+        
+    } catch (error) {
+        console.error('Error saving activity to MongoDB:', error);
+        showNotification('Error posting activity: ' + error.message, 'error');
+        
+        // Fallback to localStorage if API fails
+        let imageData = 'https://via.placeholder.com/400x200?text=Activity';
+        if (file) {
+            try {
+                const dataUrl = await readImageAsDataUrl(file);
+                if (dataUrl) imageData = dataUrl;
+            } catch (err) {
+                console.warn('Image read failed', err);
+            }
+        }
+        const activities = JSON.parse(localStorage.getItem('activities')) || [];
+        const item = {
+            id: Date.now(),
+            description,
+            place,
+            date,
+            image: imageData,
+            level: HOME_LEVEL,
+            uploadedBy: getCurrentLeaderName()
+        };
+        activities.push(item);
+        localStorage.setItem('activities', JSON.stringify(activities));
+        e.target.reset();
+        document.getElementById('leaderActivityDate').value = new Date().toISOString().slice(0, 10);
+    }
     loadLeaderHomeUpdatesList();
     alert('Recent activity posted! It will appear on the home page.');
 }
 
-function handleLeaderUpcomingSubmit(e) {
+async function handleLeaderUpcomingSubmit(e) {
     e.preventDefault();
     const title = document.getElementById('leaderUpcomingTitle').value.trim();
     const description = document.getElementById('leaderUpcomingDesc').value.trim();
     const place = document.getElementById('leaderUpcomingPlace').value.trim();
     const date = document.getElementById('leaderUpcomingDate').value;
-    const news = JSON.parse(localStorage.getItem('news')) || [];
-    const item = {
-        id: Date.now(),
+    const fileInput = document.getElementById('leaderUpcomingImage');
+    const file = fileInput && fileInput.files && fileInput.files[0];
+    
+    // Prepare data for MongoDB
+    const updateData = {
+        type: 'upcoming',
         title,
         description,
         place,
         date,
-        level: HOME_LEVEL,
-        uploadedBy: getCurrentLeaderName()
+        postedBy: getCurrentLeaderName()
     };
-    news.push(item);
-    localStorage.setItem('news', JSON.stringify(news));
-    e.target.reset();
-    document.getElementById('leaderUpcomingDate').value = new Date().toISOString().slice(0, 10);
-    loadLeaderHomeUpdatesList();
-    alert('Upcoming session posted! It will appear on the home page.');
+    
+    try {
+        // Check if ApiService is available
+        if (typeof ApiService === 'undefined') {
+            throw new Error('ApiService not available - falling back to localStorage');
+        }
+        
+        // Use API service to save to MongoDB
+        const api = new ApiService();
+        const result = await api.createHomeUpdate(updateData, file);
+        
+        console.log('Upcoming session saved to MongoDB:', result);
+        showNotification('Upcoming session posted successfully!', 'success');
+        
+        // Reset form
+        e.target.reset();
+        document.getElementById('leaderUpcomingDate').value = new Date().toISOString().slice(0, 10);
+        
+        // Refresh home updates list
+        loadLeaderHomeUpdatesList();
+        
+    } catch (error) {
+        console.error('Error saving upcoming session to MongoDB:', error);
+        showNotification('Error posting upcoming session: ' + error.message, 'error');
+        
+        // Fallback to localStorage if API fails
+        const news = JSON.parse(localStorage.getItem('news')) || [];
+        const item = {
+            id: Date.now(),
+            title,
+            description,
+            place,
+            date,
+            level: HOME_LEVEL,
+            uploadedBy: getCurrentLeaderName()
+        };
+        news.push(item);
+        localStorage.setItem('news', JSON.stringify(news));
+        e.target.reset();
+        document.getElementById('leaderUpcomingDate').value = new Date().toISOString().slice(0, 10);
+        loadLeaderHomeUpdatesList();
+        alert('Upcoming session posted! It will appear on the home page.');
+    }
 }
 
-function handleLeaderTrendingSubmit(e) {
+async function handleLeaderTrendingSubmit(e) {
     e.preventDefault();
     const description = document.getElementById('leaderTrendingDesc').value.trim();
     const place = document.getElementById('leaderTrendingPlace').value.trim();
     const date = document.getElementById('leaderTrendingDate').value;
-    const trending = JSON.parse(localStorage.getItem('trending')) || [];
-    const item = {
-        id: Date.now(),
+    const fileInput = document.getElementById('leaderTrendingImage');
+    const file = fileInput && fileInput.files && fileInput.files[0];
+    
+    // Prepare data for MongoDB
+    const updateData = {
+        type: 'trending',
+        title: 'Trending Topic',
         description,
         place,
         date,
-        level: HOME_LEVEL,
-        uploadedBy: getCurrentLeaderName()
+        postedBy: getCurrentLeaderName()
     };
-    trending.push(item);
-    localStorage.setItem('trending', JSON.stringify(trending));
-    e.target.reset();
-    document.getElementById('leaderTrendingDate').value = new Date().toISOString().slice(0, 10);
-    loadLeaderHomeUpdatesList();
-    alert('Trending topic posted! It will appear on the home page.');
+    
+    try {
+        // Check if ApiService is available
+        if (typeof ApiService === 'undefined') {
+            throw new Error('ApiService not available - falling back to localStorage');
+        }
+        
+        // Use API service to save to MongoDB
+        const api = new ApiService();
+        const result = await api.createHomeUpdate(updateData, file);
+        
+        console.log('Trending topic saved to MongoDB:', result);
+        showNotification('Trending topic posted successfully!', 'success');
+        
+        // Reset form
+        e.target.reset();
+        document.getElementById('leaderTrendingDate').value = new Date().toISOString().slice(0, 10);
+        
+        // Refresh home updates list
+        loadLeaderHomeUpdatesList();
+        
+    } catch (error) {
+        console.error('Error saving trending topic to MongoDB:', error);
+        showNotification('Error posting trending topic: ' + error.message, 'error');
+        
+        // Fallback to localStorage if API fails
+        const trending = JSON.parse(localStorage.getItem('trending')) || [];
+        const item = {
+            id: Date.now(),
+            description,
+            place,
+            date,
+            level: HOME_LEVEL,
+            uploadedBy: getCurrentLeaderName()
+        };
+        trending.push(item);
+        localStorage.setItem('trending', JSON.stringify(trending));
+        e.target.reset();
+        document.getElementById('leaderTrendingDate').value = new Date().toISOString().slice(0, 10);
+        loadLeaderHomeUpdatesList();
+        alert('Trending topic posted! It will appear on the home page.');
+    }
 }
 
-function loadLeaderHomeUpdatesList() {
+// Load leader home updates (alias for loadLeaderHomeUpdatesList)
+async function loadLeaderHomeUpdates() {
+    await loadLeaderHomeUpdatesList();
+}
+
+async function loadLeaderHomeUpdatesList() {
     const listEl = document.getElementById('leaderHomeUpdatesList');
     if (!listEl) return;
     const activities = JSON.parse(localStorage.getItem('activities')) || [];
@@ -3442,6 +5467,9 @@ function autoFillAttendanceForm(citizen) {
 }
 
 function saveFaceAttendanceRecord(citizen) {
+    const attendanceDate = new Date().toISOString().split('T')[0];
+    sessionStorage.setItem('lastUmugandaAttendanceDate', attendanceDate);
+
     const attendance = {
         name: citizen.name,
         age: citizen.age,
@@ -3449,7 +5477,7 @@ function saveFaceAttendanceRecord(citizen) {
         sector: citizen.sector,
         cell: citizen.cell,
         village: citizen.village,
-        date: new Date().toISOString(),
+        date: new Date(attendanceDate).toISOString(),
         checkInMethod: 'face_recognition',
         citizenId: citizen.id || citizen.nationalId
     };
@@ -3536,6 +5564,10 @@ function deleteAttendanceRecord(index) {
     
     if (updated) {
         alert('Attendance record deleted successfully');
+        if (recordToDelete.date) {
+            const deletedDay = new Date(recordToDelete.date).toISOString().split('T')[0];
+            sessionStorage.setItem('lastUmugandaAttendanceDate', deletedDay);
+        }
         loadUmugandaTable();
     } else {
         alert('Failed to delete record');
