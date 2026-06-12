@@ -5,3 +5,18 @@ node_modules
 dist
 build
 .vercel
+
+# Frontend & project root files (backend-only repo)
+frontend/
+.claude/
+.vscode/
+*.docx
+*.py
+vercel.json
+take_screenshots.js
+debug.log
+data-models.md
+RESPONSIVE_IMPROVEMENTS.md
+TESTING_GUIDE.md
+package.json
+package-lock.json
