@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -22,7 +23,8 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 const mongoUrl = process.env.MONGO_URI;
 
 if (!mongoUrl) {
-  console.error("❌ MONGO_URI is missing in environment variables");
+  console.error("❌ MONGO_URI is missing in environment variables. Set it in Railway → Variables.");
+  process.exit(1);
 }
 
 /* ========================
@@ -114,13 +116,14 @@ app.use("/api/leader-profiles", leaderProfileRoutes);
 app.use("/api/admin", adminRoutes);
 
 /* ========================
-   HEALTH CHECK ROUTE
+   STATIC FRONTEND FILES
 ======================== */
+const frontendPath = path.join(__dirname, "../frontend");
+app.use(express.static(frontendPath));
+
+// Serve index.html for the root so the frontend is accessible locally
 app.get("/", (req, res) => {
-  res.json({
-    message: "🚀 Backend API is running successfully",
-    status: "OK",
-  });
+  res.sendFile(path.join(frontendPath, "index.html"));
 });
 
 /* ========================
